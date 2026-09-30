@@ -10,6 +10,22 @@
   const connectionDot = document.querySelector("#connection-dot");
   const connectionLabel = document.querySelector("#connection-label");
   const modelSelect = document.querySelector("#model-select");
+  const modelDialog = document.querySelector("#model-dialog");
+  const contextWindowInput = document.querySelector("#model-context-window");
+  const thinkInput = document.querySelector("#model-think");
+  const inputModeSelect = document.querySelector("#model-input-mode");
+  const modelOptions = new Map();
+  const imageInput = document.querySelector("#image-input");
+  const attachImage = document.querySelector("#attach-image");
+  const attachmentPreview = document.querySelector("#attachment-preview");
+  const jumpLatest = document.querySelector("#jump-latest");
+  const modelCapabilities = document.querySelector("#model-capabilities");
+  const thinkQuick = document.querySelector("#think-quick");
+  const inputModeQuick = document.querySelector("#input-mode-quick");
+  const contextQuick = document.querySelector("#context-quick");
+  const modelSave = document.querySelector("#model-save");
+  const modelReset = document.querySelector("#model-reset");
+  const MODEL_OPTIONS_STORAGE_KEY = "local-studio-model-options";
   const chatForm = document.querySelector("#chat-form");
   const promptInput = document.querySelector("#prompt-input");
   const sendButton = document.querySelector("#send-button");
@@ -30,7 +46,6 @@
   const memoryStatus = document.querySelector("#memory-status");
   const memoryForm = document.querySelector("#memory-form");
   const memoryContent = document.querySelector("#memory-content");
-  const memoryCategory = document.querySelector("#memory-category");
   const memoryItems = document.querySelector("#memory-items");
   const defaultModel = document.body.dataset.defaultModel || "";
 
@@ -42,6 +57,7 @@
   let currentConversationId = null;
   let activeController = null;
   let busy = false;
+  let selectedImages = [];
   let chatGeneration = 0;
   let followOutput = true;
   let lastTouchY = null;
@@ -58,6 +74,10 @@
     busy = value;
     promptInput.disabled = !apiKey || value;
     modelSelect.disabled = !apiKey || value;
+    thinkQuick.disabled = !apiKey || value || thinkInput.disabled;
+    inputModeQuick.disabled = !apiKey || value;
+    contextQuick.disabled = !apiKey || value;
+    attachImage.disabled = !apiKey || value || inputModeSelect.value !== "multimodal";
     sendButton.disabled =
       !apiKey || value || !modelSelect.value || !promptInput.value.trim();
     contextNewChatButton.disabled = value || messages.length === 0;
@@ -152,16 +172,90 @@
     }
 
     for (const model of models) {
+      modelOptions.set(model.name, model);
       const option = document.createElement("option");
       option.value = model.name;
-      option.textContent = model.name;
+      option.textContent = model.available === false ? `${model.name} (not installed)` : model.name;
       modelSelect.append(option);
     }
+
     if (models.some((model) => model.name === savedModel)) {
       modelSelect.value = savedModel;
     } else if (models.some((model) => model.name === defaultModel)) {
       modelSelect.value = defaultModel;
     }
+    loadModelOptions();
+  }
+
+  function loadModelOptions() {
+    const model = modelOptions.get(modelSelect.value) || {};
+    const saved = getSavedModelOptions(modelSelect.value);
+    contextWindowInput.value = saved.context_window || model.context_window || 4096;
+    thinkInput.checked = saved.think !== undefined
+      ? saved.think
+      : model.think_enabled === true;
+    thinkInput.disabled = model.supports_thinking !== true;
+    inputModeSelect.value = saved.input_mode
+      || model.input_mode
+      || (model.supports_vision ? "multimodal" : "text");
+    attachImage.disabled = !apiKey || busy || inputModeSelect.value !== "multimodal";
+    thinkQuick.checked = thinkInput.checked;
+    thinkQuick.disabled = !apiKey || busy || thinkInput.disabled;
+    inputModeQuick.value = inputModeSelect.value;
+    contextQuick.replaceChildren();
+    const contextValues = [4096, 8192, 16384, 32768, 65536, 131072, 262144]
+      .filter((value) => value <= Number(model.context_window || 4096));
+    contextValues.forEach((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = `${value >= 1024 ? `${value / 1024}k` : value} ctx`;
+      contextQuick.append(option);
+    });
+    const contextValue = Number(contextWindowInput.value);
+    contextQuick.value = String(
+      contextValues.includes(contextValue) ? contextValue : contextValues[contextValues.length - 1],
+    );
+    contextWindowInput.value = contextQuick.value;
+    modelCapabilities.replaceChildren();
+    const capabilities = [];
+    if (model.context_window) capabilities.push(`${Number(model.context_window).toLocaleString()} context`);
+    if (model.supports_thinking) capabilities.push("Thinking");
+    if (model.supports_vision || model.input_mode === "multimodal") capabilities.push("Vision");
+    if (!capabilities.length) capabilities.push("Text chat");
+    capabilities.forEach((label) => {
+      const chip = document.createElement("span");
+      chip.className = "capability-chip";
+      chip.textContent = label;
+      modelCapabilities.append(chip);
+    });
+  }
+
+  function getSavedModelOptions(modelName) {
+    if (!modelName) return {};
+    try {
+      return JSON.parse(localStorage.getItem(MODEL_OPTIONS_STORAGE_KEY) || "{}")[modelName] || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveModelOptions() {
+    const allOptions = JSON.parse(localStorage.getItem(MODEL_OPTIONS_STORAGE_KEY) || "{}");
+    allOptions[modelSelect.value] = {
+      context_window: Number(contextWindowInput.value) || 4096,
+      think: thinkInput.checked,
+      input_mode: inputModeSelect.value,
+    };
+    localStorage.setItem(MODEL_OPTIONS_STORAGE_KEY, JSON.stringify(allOptions));
+    modelSave.textContent = "Saved";
+    setTimeout(() => { modelSave.textContent = "Save settings"; }, 1200);
+  }
+
+  function resetModelOptions() {
+    const allOptions = JSON.parse(localStorage.getItem(MODEL_OPTIONS_STORAGE_KEY) || "{}");
+    delete allOptions[modelSelect.value];
+    localStorage.setItem(MODEL_OPTIONS_STORAGE_KEY, JSON.stringify(allOptions));
+    loadModelOptions();
   }
 
   function restoreSavedModel() {
@@ -219,68 +313,13 @@
 
   function renderMemories() {
     memoryItems.replaceChildren();
+    memoryContent.value = savedMemories[0]?.content || "";
+    memoryItems.replaceChildren();
     if (!savedMemories.length) {
       const empty = document.createElement("li");
       empty.className = "memory-empty";
-      empty.textContent = "No saved memories yet.";
+      empty.textContent = "Your context corpus is empty.";
       memoryItems.appendChild(empty);
-      return;
-    }
-
-    for (const memory of savedMemories) {
-      const row = document.createElement("li");
-      row.className = "memory-item";
-      const fields = document.createElement("div");
-      fields.className = "memory-item-main";
-      const content = document.createElement("input");
-      content.type = "text";
-      content.maxLength = 500;
-      content.value = memory.content;
-      content.setAttribute("aria-label", "Memory text");
-      const category = document.createElement("select");
-      category.setAttribute("aria-label", "Memory category");
-      for (const [value, label] of [["fact", "Fact"], ["preference", "Preference"], ["project", "Project"]]) {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        category.appendChild(option);
-      }
-      category.value = memory.category;
-      fields.append(content, category);
-
-      const actions = document.createElement("div");
-      actions.className = "memory-item-actions";
-      const save = document.createElement("button");
-      save.type = "button";
-      save.textContent = "Save";
-      save.addEventListener("click", async () => {
-        try {
-          await request(`/api/memories/${memory.id}/`, {
-            method: "PATCH",
-            body: JSON.stringify({ content: content.value, category: category.value }),
-          });
-          setMemoryStatus("Memory updated.");
-          await loadMemories();
-        } catch (error) {
-          setMemoryStatus(error.message, true);
-        }
-      });
-      const remove = document.createElement("button");
-      remove.className = "memory-delete";
-      remove.type = "button";
-      remove.textContent = "Delete";
-      remove.addEventListener("click", async () => {
-        try {
-          await request(`/api/memories/${memory.id}/`, { method: "DELETE" });
-          setMemoryStatus("Memory deleted.");
-          await loadMemories();
-        } catch (error) {
-          setMemoryStatus(error.message, true);
-        }
-      });
-      actions.append(save, remove);
-      row.append(fields, actions);
-      memoryItems.appendChild(row);
     }
   }
 
@@ -314,8 +353,13 @@
       if (savedConversation.model && Array.from(modelSelect.options).some((option) => option.value === savedConversation.model)) {
         modelSelect.value = savedConversation.model;
         localStorage.setItem(MODEL_STORAGE_KEY, savedConversation.model);
+        loadModelOptions();
       }
-      messages = savedConversation.messages.map(({ role, content }) => ({ role, content }));
+      messages = savedConversation.messages.map(({ role, content, images }) => ({
+        role,
+        content,
+        ...(images?.length ? { images } : {}),
+      }));
       messageList.replaceChildren();
       welcome.hidden = messages.length > 0;
       savedConversation.messages.forEach((message, index) => {
@@ -397,6 +441,7 @@
     if (!force && !followOutput) return;
     conversation.scrollTop = conversation.scrollHeight;
     followOutput = true;
+    jumpLatest.hidden = true;
   }
 
   conversation.addEventListener("scroll", () => {
@@ -404,6 +449,7 @@
       followOutput = isNearLatest();
     } else if (!isNearLatest()) {
       followOutput = false;
+      jumpLatest.hidden = false;
     }
   }, { passive: true });
 
@@ -435,6 +481,8 @@
   conversation.addEventListener("touchend", () => {
     lastTouchY = null;
   }, { passive: true });
+
+  jumpLatest.addEventListener("click", () => scrollToLatest(true));
 
   conversation.addEventListener("pointerdown", (event) => {
     const bounds = conversation.getBoundingClientRect();
@@ -552,6 +600,11 @@
         conversation_id: currentConversationId || undefined,
         regenerate: assistantMessage.regenerate === true,
         model: modelSelect.value || undefined,
+        model_options: {
+          context_window: Number(contextWindowInput.value) || 4096,
+          think: thinkInput.checked,
+          input_mode: inputModeSelect.value,
+        },
         messages,
       }),
       signal: activeController.signal,
@@ -575,6 +628,7 @@
     const decoder = new TextDecoder();
     let pending = "";
     let receivedText = false;
+    let receivedThinking = false;
     let fullReply = "";
     let completed = false;
 
@@ -584,6 +638,11 @@
       if (event.error) throw new Error(event.error);
       completed = event.done === true || completed;
       const token = event.message?.content || "";
+      const thinking = event.message?.thinking || "";
+      if (thinking && !receivedText) {
+        receivedThinking = true;
+        assistantMessage.text.textContent = "Thinking…";
+      }
       if (token) {
         if (!receivedText) {
           assistantMessage.text.replaceChildren();
@@ -593,6 +652,9 @@
         assistantMessage.text.textContent = fullReply;
         scheduleAssistantMarkdownRender(assistantMessage.text, fullReply);
         scrollToLatest();
+      }
+      if (event.done && receivedThinking && !receivedText) {
+        throw new Error("The model finished without returning an answer.");
       }
     }
 
@@ -617,9 +679,15 @@
     const prompt = content.trim();
     if (!prompt || busy || !apiKey || !modelSelect.value) return;
 
-    messages.push({ role: "user", content: prompt });
+    const userMessage = { role: "user", content: prompt };
+    if (selectedImages.length) userMessage.images = selectedImages;
+    messages.push(userMessage);
     addMessage("user", prompt);
     promptInput.value = "";
+    selectedImages = [];
+    imageInput.value = "";
+    attachImage.title = "Attach images";
+    renderAttachmentPreview();
     promptInput.style.height = "auto";
     const generation = chatGeneration;
     setBusy(true);
@@ -702,7 +770,11 @@
 
   function startNewChat(preserveContext) {
     const context = preserveContext
-      ? messages.map(({ role, content }) => ({ role, content }))
+      ? messages.map(({ role, content, images }) => ({
+        role,
+        content,
+        ...(images?.length ? { images } : {}),
+      }))
       : [];
     chatGeneration += 1;
     if (activeController) activeController.abort();
@@ -746,9 +818,73 @@
     if (modelSelect.value) {
       localStorage.setItem(MODEL_STORAGE_KEY, modelSelect.value);
     }
+    loadModelOptions();
     sendButton.disabled =
       !apiKey || busy || !modelSelect.value || !promptInput.value.trim();
   });
+  contextQuick.addEventListener("change", () => {
+    contextWindowInput.value = contextQuick.value;
+  });
+  thinkQuick.addEventListener("change", () => {
+    thinkInput.checked = thinkQuick.checked;
+  });
+  inputModeQuick.addEventListener("change", () => {
+    inputModeSelect.value = inputModeQuick.value;
+    attachImage.disabled = inputModeQuick.value !== "multimodal" || busy || !apiKey;
+  });
+  document.querySelector("#model-dialog-close").addEventListener("click", () => modelDialog.close());
+  modelSave.addEventListener("click", () => {
+    saveModelOptions();
+    loadModelOptions();
+    modelDialog.close();
+  });
+  modelReset.addEventListener("click", resetModelOptions);
+  thinkInput.addEventListener("change", () => {
+    thinkQuick.checked = thinkInput.checked;
+  });
+  inputModeSelect.addEventListener("change", () => {
+    inputModeQuick.value = inputModeSelect.value;
+  });
+  inputModeSelect.addEventListener("change", () => {
+    attachImage.disabled = inputModeSelect.value !== "multimodal" || busy || !apiKey;
+  });
+  attachImage.addEventListener("click", () => imageInput.click());
+  imageInput.addEventListener("change", async () => {
+    const files = Array.from(imageInput.files || []).slice(0, 4);
+    selectedImages = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    })));
+    attachImage.title = selectedImages.length
+      ? `${selectedImages.length} image${selectedImages.length === 1 ? "" : "s"} attached`
+      : "Attach images";
+    renderAttachmentPreview();
+  });
+
+  function renderAttachmentPreview() {
+    attachmentPreview.replaceChildren();
+    selectedImages.forEach((image, index) => {
+      const chip = document.createElement("span");
+      chip.className = "attachment-chip";
+      chip.textContent = `Image ${index + 1}`;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.setAttribute("aria-label", `Remove image ${index + 1}`);
+      remove.textContent = "×";
+      remove.addEventListener("click", () => {
+        selectedImages.splice(index, 1);
+        renderAttachmentPreview();
+        attachImage.title = selectedImages.length
+          ? `${selectedImages.length} image${selectedImages.length === 1 ? "" : "s"} attached`
+          : "Attach images";
+      });
+      chip.append(remove);
+      attachmentPreview.append(chip);
+    });
+    attachmentPreview.hidden = selectedImages.length === 0;
+  }
 
   promptInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
@@ -770,8 +906,11 @@
   });
 
   historyToggle.addEventListener("click", () => {
-    const isOpen = document.body.classList.toggle("history-open");
-    historyToggle.setAttribute("aria-expanded", String(isOpen));
+    const visible = !document.body.classList.contains("history-collapsed");
+    document.body.classList.toggle("history-collapsed", visible);
+    historyToggle.setAttribute("aria-expanded", String(!visible));
+    historyToggle.setAttribute("aria-label", visible ? "Show chat history" : "Hide chat history");
+    historyToggle.title = visible ? "Show chat history" : "Hide chat history";
   });
 
   memoryOpen.addEventListener("click", async () => {
@@ -798,11 +937,7 @@
       const settings = await response.json();
       memoryEnabledState = settings.enabled;
       updateMemoryIndicator(settings.enabled, settings.memory_count);
-      setMemoryStatus(
-        memoryEnabledState
-          ? "Automatic memory is on. New facts may inform future chats."
-          : "Automatic memory is off. Existing saved memories remain available and editable.",
-      );
+      setMemoryStatus(memoryEnabledState ? "Automatic updates are on." : "Automatic updates are off.");
     } catch (error) {
       memoryEnabled.checked = memoryEnabledState;
       setMemoryStatus(error.message, true);
@@ -818,11 +953,9 @@
         method: "POST",
         body: JSON.stringify({
           content: memoryContent.value,
-          category: memoryCategory.value,
         }),
       });
-      memoryForm.reset();
-      setMemoryStatus("Memory saved.");
+      setMemoryStatus("Context corpus saved.");
       await loadMemories();
     } catch (error) {
       setMemoryStatus(error.message, true);

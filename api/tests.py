@@ -389,7 +389,8 @@ class OllamaAPITests(APITestCase):
             {"content": "Building a local chat app"},
             format="json",
         )
-        self.assertEqual(updated.status_code, 400)
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.data["content"], "Building a local chat app")
         updated = self.client.patch(
             f"/api/memories/{memory_id}/",
             {"content": "Prefers short, direct answers"},

@@ -1,0 +1,13 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^grep -n 'deduct_order_inventory' restaurant/views\\.py; \\.venv/bin/python manage\\.py test --noinput$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        ".venv/bin/python": true,
+        "/^python3 - <<'PY'\np='restaurant/views\\.py'; s=open\\(p\\)\\.read\\(\\); s=s\\.replace\\('ticket\\.save\\(update_fields=\\[\"status\", \"station\", \"started_at\", \"ready_at\", \"completed_at\"\\]\\)\\\\n    SecurityAuditLog\\.record\\(', 'ticket\\.save\\(update_fields=\\[\"status\", \"station\", \"started_at\", \"ready_at\", \"completed_at\"\\]\\)\\\\n    if new_status == KitchenTicket\\.COMPLETED:\\\\n        deduct_order_inventory\\(ticket\\.order, _staff_actor\\(request\\)\\)\\\\n    SecurityAuditLog\\.record\\('\\)\ns=s\\.replace\\('deduct_order_inventory\\(ticket\\.order, _staff_actor\\(request\\)\\)\\\\n    elif sibling_statuses', 'deduct_order_inventory\\(item\\.ticket\\.order, _staff_actor\\(request\\)\\)\\\\n    elif sibling_statuses'\\)\ns=s\\.replace\\('stock_on_hand__lte=models\\.F\\(\"reorder_level\"\\)','stock_on_hand__lte=F\\(\"reorder_level\"\\)'\\)\nopen\\(p,'w'\\)\\.write\\(s\\)\nPY\n\\.venv/bin/python -m py_compile restaurant/views\\.py && \\.venv/bin/python manage\\.py check && git diff --check$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

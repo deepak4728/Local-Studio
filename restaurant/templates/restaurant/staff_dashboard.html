@@ -1,0 +1,341 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f2ee;
+      --panel: #fffdfb;
+      --ink: #1d1b18;
+      --muted: #675f59;
+      --line: #e7dfd7;
+      --accent: #1c1c1a;
+      --accent-soft: #f0efe9;
+      --good: #2e7a5f;
+      --warn: #c7802d;
+      --danger: #b64b49;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .brand-mark {
+      display: inline-flex;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    nav a {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.6);
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    nav a.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 2.6rem);
+      letter-spacing: -0.04em;
+    }
+    .key-form {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    input {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 12px;
+      min-width: 220px;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    .status {
+      margin-top: 8px;
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .status.error { color: var(--danger); }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 18px 0 24px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px 16px;
+    }
+    .label {
+      display: block;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    .value {
+      font-size: clamp(1.9rem, 3vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+    .table-wrap {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+    .queue-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 4px 0 12px;
+    }
+    .queue-toolbar label { color: var(--muted); font-size: 0.86rem; }
+    .queue-toolbar select {
+      min-width: 165px;
+      padding: 9px 30px 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    th {
+      background: #faf7f2;
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    td {
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+    .badge.pending { background: rgba(199,128,45,0.12); color: var(--warn); }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .mini-button {
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+    }
+    .mini-button.secondary {
+      background: #f4f0ea;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .mini-button.detail-button {
+      margin-right: 6px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+    }
+    .detail-dialog {
+      width: min(520px, calc(100% - 28px));
+      max-height: min(80vh, 680px);
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--ink);
+      box-shadow: 0 20px 70px #1d1b1830;
+    }
+    .detail-dialog::backdrop { background: #191d19a6; }
+    .detail-content { padding: 20px; }
+    .detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .detail-header h2 { margin: 0; font-size: 1.35rem; }
+    .detail-header p { margin: 6px 0 0; color: var(--muted); font-size: .9rem; }
+    .detail-close { padding: 7px 10px; border: 1px solid var(--line); background: white; color: var(--ink); }
+    .detail-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+    .detail-summary div { min-width: 0; }
+    .detail-summary dt { color: var(--muted); font-size: .76rem; }
+    .detail-summary dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: .95rem; }
+    .detail-items { border-top: 1px solid var(--line); }
+    .detail-line { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .92rem; }
+    .detail-line span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .detail-notes { margin: 15px 0 0; color: var(--muted); font-size: .9rem; white-space: pre-wrap; }
+    @media (max-width: 700px) {
+      .topbar, .header-row, .key-form { align-items: stretch; width: 100%; }
+      .key-form { display: grid; grid-template-columns: 1fr auto; }
+      .summary-grid { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+      .queue-toolbar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand"><span class="brand-mark"></span> Local Studio</div>
+      <nav>
+        <a href="/restaurant/staff/" class="active">Dashboard</a>
+        <a href="/restaurant/staff/menu/">Menu</a>
+        <a href="/restaurant/staff/settings/">Settings</a>
+        <a href="/restaurant/order/">Order</a>
+      </nav>
+    </div>
+
+    <div class="panel">
+      <div class="header-row">
+        <h1>Staff Dashboard</h1>
+        <form id="staff-key-form" class="key-form">
+          <input id="staff-key" type="password" placeholder="Enter staff key" aria-label="Staff key" required>
+          <button type="submit">Load</button>
+        </form>
+      </div>
+    <div id="status" class="status" aria-live="polite"></div>
+
+    <div class="summary-grid">
+      <div class="card">
+        <span class="label">Pending</span>
+        <div id="pending-count" class="value">0</div>
+      </div>
+      <div class="card">
+        <span class="label">Completed</span>
+        <div id="completed-count" class="value">0</div>
+      </div>
+      <div class="card">
+        <span class="label">Revenue</span>
+        <div id="revenue-total" class="value">$0.00</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="queue-toolbar">
+        <label for="order-status-filter">Show orders</label>
+        <select id="order-status-filter">
+          <option value="all">All active</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="preparing">Preparing</option>
+          <option value="ready">Ready</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="order-rows"></tbody>
+      </table>
+    </div>
+
+    <dialog class="detail-dialog" id="order-detail-dialog" aria-labelledby="order-detail-title">
+      <div class="detail-content">
+        <div class="detail-header">
+          <div>
+            <h2 id="order-detail-title">Order details</h2>
+            <p id="order-detail-customer"></p>
+          </div>
+          <button class="detail-close" id="order-detail-close" type="button" aria-label="Close order details">Close</button>
+        </div>
+        <dl class="detail-summary" id="order-detail-summary"></dl>
+        <div class="detail-items" id="order-detail-items"></div>
+        <p class="detail-notes" id="order-detail-notes"></p>
+      </div>
+    </dialog>
+  </div>
+
+  <script src="{% static 'restaurant/staff-dashboard.js' %}" defer></script>
+</body>
+</html>

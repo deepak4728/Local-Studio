@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const catalogDraft = document.getElementById("catalog-draft");
   const statusBox = document.getElementById("status");
   const staffKey = () => keyInput.value.trim();
+  const profileForm = document.getElementById("model-profile-form");
+  const profileList = document.getElementById("model-profiles");
 
   function setStatus(message, isError = false) {
     statusBox.textContent = message;
@@ -54,8 +56,29 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("discount_percent").value = profile.discount_percent || "0";
       document.getElementById("tax_rate").value = profile.tax_rate || "0";
       setStatus("Business settings loaded.");
+      await loadModelProfiles();
     } catch (error) {
       setStatus(error.message, true);
+    }
+
+    async function loadModelProfiles() {
+      const response = await request("/api/local-model-profiles/");
+      const profiles = await response.json();
+      profileList.replaceChildren();
+      for (const profile of profiles) {
+        const row = document.createElement("div");
+        row.className = "model-profile-row";
+        row.textContent = `${profile.name} · ${profile.context_window} tokens · ${profile.input_mode}${profile.supports_thinking ? " · thinking" : ""}`;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "Remove";
+        remove.addEventListener("click", async () => {
+          await request(`/api/local-model-profiles/${profile.id}/`, { method: "DELETE" });
+          await loadModelProfiles();
+        });
+        row.appendChild(remove);
+        profileList.appendChild(row);
+      }
     }
   }
 
@@ -180,6 +203,29 @@ document.addEventListener("DOMContentLoaded", () => {
       await request("/api/business/profile/", {
         method: "POST",
         body: JSON.stringify(payload),
+      });
+
+      profileForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          await request("/api/local-model-profiles/", {
+            method: "POST",
+            body: JSON.stringify({
+              name: document.getElementById("profile-name").value.trim(),
+              context_window: Number(document.getElementById("profile-context").value),
+              input_mode: document.getElementById("profile-input-mode").value,
+              supports_thinking: document.getElementById("profile-thinking").checked,
+              think_enabled: false,
+              supports_vision: document.getElementById("profile-input-mode").value === "multimodal",
+            }),
+          });
+          profileForm.reset();
+          document.getElementById("profile-context").value = "4096";
+          await loadModelProfiles();
+          setStatus("Local model profile saved.");
+        } catch (error) {
+          setStatus(error.message, true);
+        }
       });
       setStatus("Business settings saved.");
     } catch (error) {

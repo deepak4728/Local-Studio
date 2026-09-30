@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kitchen display</title>
+<style>
+body{font:16px system-ui;background:#111827;color:#f9fafb;margin:0;padding:1rem}
+header{display:flex;gap:1rem;align-items:center;justify-content:space-between}
+input,button{padding:.55rem;border-radius:.4rem;border:1px solid #4b5563}button{cursor:pointer}
+#tickets{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1rem}
+article{background:#1f2937;border-radius:.7rem;padding:1rem}li{margin:.5rem 0;display:flex;justify-content:space-between;gap:.5rem}
+.ready{border:2px solid #34d399}.status{color:#fbbf24;text-transform:capitalize}
+</style></head>
+<body><header><h1>Kitchen display</h1><div><input id="staff-key" type="password" placeholder="Staff key"><button id="refresh">Refresh</button></div></header>
+<p id="message"></p><main id="tickets"></main>
+<script src="/static/restaurant/kitchen-display.js"></script></body></html>

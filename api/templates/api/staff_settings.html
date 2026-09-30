@@ -239,6 +239,21 @@
         <button type="submit">Save settings</button>
       </form>
     </div>
+
+    <div class="panel">
+      <h2>Local model profiles</h2>
+      <p>Save capabilities for Ollama models so chat can offer the right context, thinking, and image options.</p>
+      <form id="model-profile-form">
+        <div class="grid">
+          <label>Model name<input id="profile-name" required placeholder="gemma4:e2b"></label>
+          <label>Context window<input id="profile-context" type="number" min="128" max="1000000" step="128" value="4096" required></label>
+          <label>Input mode<select id="profile-input-mode"><option value="text">Text only</option><option value="multimodal">Text and images</option></select></label>
+          <label class="checkbox-label"><input id="profile-thinking" type="checkbox"> Supports thinking</label>
+        </div>
+        <button type="submit">Add model profile</button>
+      </form>
+      <div id="model-profiles" class="model-profiles"></div>
+    </div>
   </div>
 
   <script src="{% static 'api/staff-settings.js' %}" defer></script>

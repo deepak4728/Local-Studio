@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "api",
+    "chat",
+    "restaurant",
 ]
 
 MIDDLEWARE = [
@@ -79,7 +81,7 @@ OLLAMA_BASE_URL = os.environ.get(
     "http://127.0.0.1:11434",
 ).rstrip("/")
 OLLAMA_DEFAULT_MODEL = os.environ.get("OLLAMA_DEFAULT_MODEL", "").strip()
-OLLAMA_TIMEOUT_SECONDS = float(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "30"))
+OLLAMA_TIMEOUT_SECONDS = float(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "120"))
 CLOUD_API_KEY = os.environ.get("CLOUD_API_KEY", "").strip()
 CLOUD_API_BASE_URL = os.environ.get(
     "CLOUD_API_BASE_URL",

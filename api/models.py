@@ -68,6 +68,31 @@ class BusinessProfile(models.Model):
         return profile
 
 
+class LocalModelProfile(models.Model):
+    INPUT_TEXT = "text"
+    INPUT_MULTIMODAL = "multimodal"
+    INPUT_MODE_CHOICES = (
+        (INPUT_TEXT, "Text only"),
+        (INPUT_MULTIMODAL, "Text and images"),
+    )
+
+    name = models.CharField(max_length=256, unique=True)
+    context_window = models.PositiveIntegerField(default=4096)
+    supports_thinking = models.BooleanField(default=False)
+    think_enabled = models.BooleanField(default=False)
+    supports_vision = models.BooleanField(default=False)
+    input_mode = models.CharField(
+        max_length=16,
+        choices=INPUT_MODE_CHOICES,
+        default=INPUT_TEXT,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+
 class ChatConversation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner_hash = models.CharField(max_length=64, db_index=True)
@@ -101,6 +126,7 @@ class ChatMessage(models.Model):
     )
     role = models.CharField(max_length=16, choices=ROLE_CHOICES)
     content = models.TextField()
+    images = models.JSONField(default=list, blank=True)
     memory_count = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -125,7 +151,7 @@ class ChatMemory(models.Model):
     )
 
     owner_hash = models.CharField(max_length=64, db_index=True)
-    content = models.CharField(max_length=500)
+    content = models.TextField()
     category = models.CharField(
         max_length=16,
         choices=CATEGORY_CHOICES,
@@ -155,6 +181,7 @@ class MenuItem(models.Model):
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=100, default="General")
     description = models.TextField(blank=True, default="")
+    barcode = models.CharField(max_length=128, blank=True, default="", db_index=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     is_available = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -187,6 +214,40 @@ class Order(models.Model):
     customer_name = models.CharField(max_length=200, blank=True, default="")
     notes = models.TextField(blank=True, default="")
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    # ``status`` is retained for clients written before connected ordering.  New
+    # code should use the independent lifecycle fields below.
+    PAYMENT_PENDING = "pending"
+    PAYMENT_AUTHORIZED = "authorized"
+    PAYMENT_PAID = "paid"
+    PAYMENT_FAILED = "failed"
+    PAYMENT_REFUNDED = "refunded"
+    PAYMENT_STATUS_CHOICES = (
+        (PAYMENT_PENDING, "Pending"),
+        (PAYMENT_AUTHORIZED, "Authorized"),
+        (PAYMENT_PAID, "Paid"),
+        (PAYMENT_FAILED, "Failed"),
+        (PAYMENT_REFUNDED, "Refunded"),
+    )
+    payment_status = models.CharField(
+        max_length=32, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_PENDING
+    )
+    fulfillment_status = models.CharField(
+        max_length=32, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    REVIEW_PENDING = "pending"
+    REVIEW_APPROVED = "approved"
+    REVIEW_REJECTED = "rejected"
+    REVIEW_STATUS_CHOICES = (
+        (REVIEW_PENDING, "Pending review"),
+        (REVIEW_APPROVED, "Approved"),
+        (REVIEW_REJECTED, "Rejected"),
+    )
+    review_status = models.CharField(
+        max_length=32, choices=REVIEW_STATUS_CHOICES, default=REVIEW_PENDING
+    )
+    review_note = models.TextField(blank=True, default="")
+    reviewed_by = models.CharField(max_length=160, blank=True, default="")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
