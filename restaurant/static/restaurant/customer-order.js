@@ -158,13 +158,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderMenu(items) {
+    const sortedItems = [...items].sort((a, b) => {
+      const categoryCompare = String(a.category || "").localeCompare(String(b.category || ""));
+      if (categoryCompare !== 0) return categoryCompare;
+      const nameCompare = String(a.name || "").localeCompare(String(b.name || ""));
+      if (nameCompare !== 0) return nameCompare;
+      return Number(a.id || 0) - Number(b.id || 0);
+    });
+
     menuList.innerHTML = "";
-    if (!items.length) {
+    if (!sortedItems.length) {
       menuList.innerHTML = "<p>No menu items available.</p>";
       return;
     }
 
-    for (const item of items) {
+    for (const item of sortedItems) {
       const card = document.createElement("div");
       card.className = "menu-item";
       const details = document.createElement("div");

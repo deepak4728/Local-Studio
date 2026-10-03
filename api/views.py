@@ -13,12 +13,18 @@ from django.core.handlers.asgi import ASGIRequest
 from django.db import close_old_connections, transaction
 from django.db.models import Count
 from django.http import StreamingHttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .authentication import (
@@ -53,6 +59,7 @@ from .providers import (
     open_cloud_response,
     validate_cloud_provider,
 )
+from .throttling import ChatRateThrottle, OrderCreateThrottle
 from .serializers import (
     BusinessProfileSerializer,
     BusinessSetupPromptSerializer,
@@ -266,7 +273,13 @@ async def _async_stream_response(
 
 
 def _chat_owner_hash(request):
-    owner_token = request.headers.get("X-Chat-Owner") or settings.API_KEY
+    owner_token = (request.headers.get("X-Chat-Owner") or "").strip()
+    if not owner_token:
+        raise ValidationError({"detail": "The X-Chat-Owner header is required."})
+    if owner_token in {settings.API_KEY, settings.STAFF_API_KEY}:
+        raise ValidationError(
+            {"detail": "X-Chat-Owner must be a browser token, not an API key."}
+        )
     return ChatConversation.hash_owner(owner_token)
 
 
@@ -536,6 +549,12 @@ def business_profile(request):
     if request.method == "GET":
         return Response(BusinessProfileSerializer(profile).data)
 
+    if not getattr(request.user, "is_staff", False):
+        return Response(
+            {"detail": "The staff key is required to update business settings."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     serializer = BusinessProfileSerializer(data=request.data, partial=True)
     serializer.is_valid(raise_exception=True)
 
@@ -644,9 +663,15 @@ def business_setup(request):
 @permission_classes([IsAuthenticated])
 def menu_items(request):
     if request.method == "GET":
-        items = MenuItem.objects.filter(is_available=True)
+        items = MenuItem.objects.filter(is_available=True).order_by("category", "name", "id")
         serializer = MenuItemSerializer(items, many=True)
         return Response(serializer.data)
+
+    if not getattr(request.user, "is_staff", False):
+        return Response(
+            {"detail": "The staff key is required to create menu items."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     serializer = MenuItemCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -675,7 +700,7 @@ def staff_dashboard(request):
 
 
 @api_view(["PATCH"])
-@authentication_classes([APIKeyOrStaffKeyAuthentication])
+@authentication_classes([StaffKeyAuthentication])
 @permission_classes([IsAuthenticated])
 def order_status(request, order_id):
     order = Order.objects.get(pk=order_id)
@@ -745,8 +770,16 @@ def _build_order_summary(customer_name, notes, item_payloads, business):
 
 
 @api_view(["GET", "POST"])
+@authentication_classes([APIKeyOrStaffKeyAuthentication])
+@permission_classes([IsAuthenticated])
+@throttle_classes([OrderCreateThrottle])
 def orders(request):
     if request.method == "GET":
+        if not getattr(request.user, "is_staff", False):
+            return Response(
+                {"detail": "The staff key is required to list orders."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         profile = BusinessProfile.get_or_create_default()
         orders = Order.objects.filter(business=profile).order_by("-created_at")
         serializer = OrderSerializer(orders, many=True)
@@ -783,7 +816,7 @@ def orders(request):
 
 
 @api_view(["GET"])
-@authentication_classes([APIKeyOrStaffKeyAuthentication])
+@authentication_classes([StaffKeyAuthentication])
 @permission_classes([IsAuthenticated])
 def order_queue(request):
     profile = BusinessProfile.get_or_create_default()
@@ -801,7 +834,7 @@ def order_queue(request):
 
 
 @api_view(["GET"])
-@authentication_classes([APIKeyOrStaffKeyAuthentication])
+@authentication_classes([StaffKeyAuthentication])
 @permission_classes([IsAuthenticated])
 def order_detail(request, order_id):
     profile = BusinessProfile.get_or_create_default()
@@ -1015,6 +1048,7 @@ def chat_memory_detail(request, memory_id):
 
 
 @api_view(["POST"])
+@throttle_classes([ChatRateThrottle])
 def chat(request):
     serializer = ChatRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)

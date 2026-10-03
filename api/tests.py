@@ -19,7 +19,11 @@ from api.models import (
 )
 
 
-@override_settings(API_KEY="test-api-key", OLLAMA_DEFAULT_MODEL="test-model")
+@override_settings(
+    API_KEY="test-api-key",
+    STAFF_API_KEY="staff-test-key",
+    OLLAMA_DEFAULT_MODEL="test-model",
+)
 class OllamaAPITests(APITestCase):
     def setUp(self):
         self.client.credentials(HTTP_X_API_KEY="test-api-key")
@@ -100,6 +104,7 @@ class OllamaAPITests(APITestCase):
             "/api/chat/",
             {"messages": [{"role": "user", "content": "Say hello"}]},
             format="json",
+            HTTP_X_CHAT_OWNER="browser-a",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -544,7 +549,7 @@ class OllamaAPITests(APITestCase):
                 "/api/chat/",
                 data='{"messages":[{"role":"user","content":"Say hello"}]}',
                 content_type="application/json",
-                headers={"X-API-Key": "test-api-key"},
+                headers={"X-API-Key": "test-api-key", "X-Chat-Owner": "browser-a"},
             )
             self.assertEqual(response.status_code, 200, getattr(response, "data", None))
             body = b"".join(
@@ -574,6 +579,7 @@ class OllamaAPITests(APITestCase):
             "/api/chat/",
             {"messages": [{"role": "user", "content": "Hello"}]},
             format="json",
+            HTTP_X_CHAT_OWNER="browser-a",
         )
 
         self.assertEqual(response.status_code, 502)
@@ -586,6 +592,7 @@ class OllamaAPITests(APITestCase):
             "/api/chat/",
             {"messages": [{"role": "user", "content": "Hello"}]},
             format="json",
+            HTTP_X_CHAT_OWNER="browser-a",
         )
 
         self.assertEqual(response.status_code, 503)
@@ -630,6 +637,7 @@ class CloudProviderAPITests(APITestCase):
             "/api/chat/",
             {"messages": [{"role": "user", "content": "Say hello"}]},
             format="json",
+            HTTP_X_CHAT_OWNER="browser-a",
         )
         body = b"".join(response.streaming_content)
 
@@ -668,6 +676,7 @@ class BusinessProfileAPITests(APITestCase):
         self.assertEqual(response.data["business_type"], "generic")
 
     def test_business_profile_can_be_updated(self):
+        self.client.credentials(HTTP_X_STAFF_KEY="staff-test-key")
         response = self.client.post(
             "/api/business/profile/",
             {
@@ -817,6 +826,7 @@ class BusinessProfileAPITests(APITestCase):
         profile.business_type = BusinessProfile.BUSINESS_TYPE_RESTAURANT
         profile.save()
 
+        self.client.credentials(HTTP_X_STAFF_KEY="staff-test-key")
         create_menu_response = self.client.post(
             "/api/menu/",
             {
@@ -846,6 +856,7 @@ class BusinessProfileAPITests(APITestCase):
             unit_price=menu_item.price,
         )
 
+        self.client.credentials(HTTP_X_STAFF_KEY="staff-test-key")
         status_response = self.client.patch(
             f"/api/orders/{order.id}/status/",
             {"status": Order.STATUS_PREPARING},
@@ -925,7 +936,10 @@ class BusinessProfileAPITests(APITestCase):
         self.assertEqual(submit_response.status_code, 200)
         self.assertEqual(submit_response.data["status"], Order.STATUS_PENDING)
 
-        queue_response = self.client.get("/api/orders/queue/")
+        queue_response = self.client.get(
+            "/api/orders/queue/",
+            HTTP_X_STAFF_KEY="staff-test-key",
+        )
         self.assertEqual(queue_response.status_code, 200)
         self.assertTrue(any(item["customer_name"] == "Nina" for item in queue_response.data))
 
@@ -1051,9 +1065,15 @@ class StaffDashboardAPITests(APITestCase):
         completed = Order.objects.create(business=profile, status=Order.STATUS_COMPLETED)
         Order.objects.create(business=profile, status=Order.STATUS_CANCELLED)
 
-        default_response = self.client.get("/api/orders/queue/")
-        completed_response = self.client.get("/api/orders/queue/?status=completed")
-        invalid_response = self.client.get("/api/orders/queue/?status=unknown")
+        default_response = self.client.get(
+            "/api/orders/queue/", HTTP_X_STAFF_KEY="staff-test-key"
+        )
+        completed_response = self.client.get(
+            "/api/orders/queue/?status=completed", HTTP_X_STAFF_KEY="staff-test-key"
+        )
+        invalid_response = self.client.get(
+            "/api/orders/queue/?status=unknown", HTTP_X_STAFF_KEY="staff-test-key"
+        )
 
         self.assertEqual(default_response.status_code, 200)
         self.assertEqual({order["id"] for order in default_response.data}, {pending.id, completed.id})
@@ -1099,6 +1119,7 @@ class StaffDashboardAPITests(APITestCase):
         other_business = BusinessProfile.objects.create(business_name="Other business")
         order = Order.objects.create(business=other_business)
 
+        self.client.credentials(HTTP_X_STAFF_KEY="staff-test-key")
         response = self.client.get(f"/api/orders/{order.id}/")
 
         self.assertEqual(response.status_code, 404)

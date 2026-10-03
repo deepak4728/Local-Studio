@@ -24,8 +24,17 @@ class APIKeyNotConfigured(APIException):
     default_code = "api_key_not_configured"
 
 
+def _request_user(request):
+    http_request = getattr(request, "_request", request)
+    return getattr(http_request, "user", None)
+
+
 class APIKeyAuthentication(BaseAuthentication):
     def authenticate(self, request):
+        user = _request_user(request)
+        if user is not None and getattr(user, "is_authenticated", False):
+            return user, None
+
         configured_key = settings.API_KEY
         if not configured_key:
             raise APIKeyNotConfigured()
@@ -48,6 +57,12 @@ class APIKeyAuthentication(BaseAuthentication):
 
 class StaffKeyAuthentication(BaseAuthentication):
     def authenticate(self, request):
+        user = _request_user(request)
+        if user is not None and getattr(user, "is_authenticated", False):
+            if getattr(user, "is_staff", False):
+                return user, None
+            raise AuthenticationFailed("This account does not have staff access.")
+
         configured_key = settings.STAFF_API_KEY
         if not configured_key:
             raise APIKeyNotConfigured()
@@ -66,6 +81,19 @@ class StaffKeyAuthentication(BaseAuthentication):
 
     def authenticate_header(self, request):
         return "Staff-Key"
+
+
+class SessionStaffAuthentication(BaseAuthentication):
+    def authenticate(self, request):
+        user = _request_user(request)
+        if user is None or not getattr(user, "is_authenticated", False):
+            raise AuthenticationFailed("Session authentication is required.")
+        if not getattr(user, "is_staff", False):
+            raise AuthenticationFailed("This account does not have staff access.")
+        return user, None
+
+    def authenticate_header(self, request):
+        return "Session"
 
 
 class APIKeyOrStaffKeyAuthentication(BaseAuthentication):

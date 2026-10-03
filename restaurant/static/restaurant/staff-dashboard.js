@@ -35,9 +35,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderOrders(orders) {
+    const normalizedOrders = [...orders].sort((a, b) => {
+      const statusRank = {
+        pending: 0,
+        confirmed: 1,
+        preparing: 2,
+        ready: 3,
+        completed: 4,
+        cancelled: 5,
+      };
+      const statusCompare = (statusRank[a.status] ?? 99) - (statusRank[b.status] ?? 99);
+      if (statusCompare !== 0) return statusCompare;
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
+
     orderRows.innerHTML = "";
 
-    if (!orders.length) {
+    if (!normalizedOrders.length) {
       const row = document.createElement("tr");
       const cell = document.createElement("td");
       cell.colSpan = 5;
@@ -47,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    for (const order of orders) {
+    for (const order of normalizedOrders) {
       const row = document.createElement("tr");
       const statusCell = document.createElement("td");
       const badge = document.createElement("span");

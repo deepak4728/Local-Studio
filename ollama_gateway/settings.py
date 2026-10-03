@@ -1,17 +1,25 @@
 import os
+import sys
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "development-only-secret-key-change-before-deployment",
-)
+_INSECURE_SECRET_KEY = "development-only-secret-key-change-before-deployment"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", _INSECURE_SECRET_KEY)
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in {"1", "true", "yes"}
+RUNNING_TESTS = "test" in sys.argv
+
+if not DEBUG and not RUNNING_TESTS and (
+    not os.environ.get("DJANGO_SECRET_KEY") or SECRET_KEY == _INSECURE_SECRET_KEY
+):
+    raise ImproperlyConfigured(
+        "Set DJANGO_SECRET_KEY to a unique random value when DJANGO_DEBUG is false."
+    )
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
@@ -58,12 +66,25 @@ TEMPLATES = [
 WSGI_APPLICATION = "ollama_gateway.wsgi.application"
 ASGI_APPLICATION = "ollama_gateway.asgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+_DB_ENGINE = os.environ.get("DJANGO_DB_ENGINE", "django.db.backends.sqlite3")
+if _DB_ENGINE == "django.db.backends.sqlite3":
+    DATABASES = {
+        "default": {
+            "ENGINE": _DB_ENGINE,
+            "NAME": os.environ.get("DJANGO_DB_NAME", BASE_DIR / "db.sqlite3"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": _DB_ENGINE,
+            "NAME": os.environ.get("DJANGO_DB_NAME", "local_studio"),
+            "USER": os.environ.get("DJANGO_DB_USER", ""),
+            "PASSWORD": os.environ.get("DJANGO_DB_PASSWORD", ""),
+            "HOST": os.environ.get("DJANGO_DB_HOST", "localhost"),
+            "PORT": os.environ.get("DJANGO_DB_PORT", "5432"),
+        }
+    }
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -88,11 +109,40 @@ CLOUD_API_BASE_URL = os.environ.get(
     "https://api.openai.com/v1",
 ).strip().rstrip("/")
 
+if not DEBUG and not RUNNING_TESTS:
+    SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SSL_REDIRECT", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "api": {"handlers": ["console"], "level": "INFO"},
+        "restaurant": {"handlers": ["console"], "level": "INFO"},
+    },
+}
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "api.authentication.APIKeyAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "chat": "60/min",
+        "orders": "120/min",
+    },
 }

@@ -16,7 +16,7 @@ class ChatMessageSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=("system", "user", "assistant"))
     content = serializers.CharField(allow_blank=False)
     images = serializers.ListField(
-        child=serializers.CharField(max_length=10_000_000),
+        child=serializers.CharField(max_length=1_500_000),
         required=False,
         default=list,
         max_length=4,

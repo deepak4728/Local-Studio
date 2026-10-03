@@ -7,169 +7,378 @@
   <title>Menu Management</title>
   <style>
     :root {
-      --bg: #f5f2ee;
-      --panel: #fffdfb;
+      --bg: #f4efe9;
+      --bg-strong: #efe4d8;
+      --panel: rgba(255,255,255,0.72);
+      --panel-strong: #fffdfb;
+      --surface: #f8f3ee;
       --ink: #1d1b18;
-      --muted: #675f59;
-      --line: #e7dfd7;
-      --accent: #1c1c1a;
-      --danger: #b64b49;
+      --muted: #625b57;
+      --line: rgba(31,25,21,0.08);
+      --accent: #171614;
+      --accent-soft: #f0ebe6;
+      --accent-2: #7a5a3f;
+      --success: #2d775d;
+      --warn: #c7802d;
+      --danger: #c35c56;
+      --shadow: 0 24px 80px rgba(23,22,20,0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
     }
+
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
-      background: var(--bg);
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, rgba(122, 90, 63, 0.10), transparent 28%), linear-gradient(180deg, var(--bg) 0%, #f8f5f1 100%);
       color: var(--ink);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+
     a { color: inherit; text-decoration: none; }
+    button, input, textarea, select {
+      font: inherit;
+      border: none;
+      outline: none;
+    }
+
     .container {
-      max-width: 1100px;
+      max-width: 1280px;
       margin: 0 auto;
       padding: 28px 20px 40px;
     }
+
     .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .brand-mark {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--accent-2) 100%);
+      box-shadow: 0 0 0 4px rgba(23,22,20,0.06);
+    }
+
+    .nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 8px;
+      background: rgba(255,255,255,0.42);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .nav a.active,
+    .nav a:hover {
+      background: #171614;
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(23,22,20,0.15);
+    }
+
+    .hero {
+      margin-bottom: 18px;
+      padding: 28px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.55));
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      right: -40px;
+      top: -40px;
+      background: radial-gradient(circle, rgba(122,90,63,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+      gap: 20px;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2.2rem, 4vw, 4rem);
+      letter-spacing: -0.07em;
+      line-height: 0.98;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+      max-width: 640px;
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(45,119,93,0.12);
+    }
+
+    .hero-panel {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(25,22,20,0.96);
+      color: #f8f3ef;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 18px 40px rgba(23,22,20,0.24);
+    }
+
+    .mini-stat {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .mini-stat .stat-box {
+      padding: 14px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .mini-stat .label {
+      display: block;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .mini-stat strong {
+      font-size: 1.2rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.9fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      padding: 20px;
+    }
+
+    .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 16px;
+      flex-wrap: wrap;
       margin-bottom: 18px;
-      flex-wrap: wrap;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-    .brand-mark {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: inline-block;
-    }
-    nav {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    nav a {
-      padding: 8px 12px;
-      font-size: 0.86rem;
-      color: var(--muted);
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.65);
-    }
-    nav a.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-    .layout {
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 18px;
-      margin-top: 10px;
-    }
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 18px;
-    }
-    h1 {
+
+    .panel-header h2 {
       margin: 0;
-      font-size: clamp(2rem, 4vw, 2.7rem);
-      letter-spacing: -0.04em;
+      font-size: clamp(1.75rem, 2vw, 2.2rem);
+      letter-spacing: -0.05em;
     }
-    .key-box {
+
+    .key-form {
       display: flex;
-      gap: 10px;
       align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    input, button {
-      border-radius: 10px;
-      font: inherit;
-    }
-    input {
-      min-width: 220px;
-      padding: 11px 12px;
+
+    input, textarea, select {
+      width: 100%;
+      background: rgba(255,255,255,0.72);
       border: 1px solid var(--line);
-      background: #fff;
+      border-radius: 12px;
+      color: var(--ink);
+      padding: 12px 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
     }
+
+    input::placeholder, textarea::placeholder { color: rgba(29,27,24,0.45); }
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
     button {
-      border: none;
-      background: var(--accent);
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent) 0%, #2e2a28 100%);
       color: #fff;
-      padding: 11px 14px;
       font-weight: 700;
       cursor: pointer;
+      box-shadow: 0 12px 26px rgba(23,22,20,0.16);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
     }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 26px rgba(23,22,20,0.2);
+    }
+
+    button:disabled { opacity: 0.7; cursor: wait; }
+
+    .secondary {
+      background: rgba(23,22,20,0.04);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    .status.error { color: var(--danger); font-weight: 600; }
+
     .menu-list {
       display: grid;
       gap: 12px;
       margin-top: 16px;
     }
+
     .menu-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
+      gap: 14px;
+      padding: 14px 16px;
       border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #fff;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.7);
     }
+
     .menu-item strong {
       display: block;
       margin-bottom: 4px;
+      font-size: 1rem;
     }
+
     .menu-item span {
       color: var(--muted);
       font-size: 0.84rem;
+      display: block;
     }
-    .status {
-      min-height: 22px;
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 0.9rem;
+
+    .menu-item .price {
+      font-weight: 700;
+      font-size: 1.05rem;
+      white-space: nowrap;
     }
-    .status.error { color: var(--danger); }
+
     form {
       display: grid;
       gap: 12px;
     }
-    textarea {
-      resize: vertical;
-      min-height: 90px;
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font: inherit;
-    }
+
     .inline {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
+
     .checkbox {
       display: flex;
       align-items: center;
       gap: 8px;
+      padding: 0 14px;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.72);
       color: var(--muted);
+      font-size: 0.9rem;
     }
+
+    .checkbox input {
+      width: auto;
+      accent-color: var(--accent);
+    }
+
     @media (max-width: 760px) {
-      .layout { grid-template-columns: 1fr; }
+      .hero-row, .layout { grid-template-columns: 1fr; }
+      .panel-header { align-items: flex-start; }
+      .key-form { width: 100%; }
+      .key-form input { flex: 1; }
       .inline { grid-template-columns: 1fr; }
-      .key-box { width: 100%; }
-      .key-box input { flex: 1; }
     }
   </style>
 </head>
@@ -177,7 +386,7 @@
   <div class="container">
     <div class="topbar">
       <div class="brand"><span class="brand-mark"></span> Local Studio</div>
-      <nav>
+      <nav class="nav" aria-label="Restaurant navigation">
         <a href="/restaurant/staff/">Dashboard</a>
         <a href="/restaurant/staff/menu/" class="active">Menu</a>
         <a href="/restaurant/staff/settings/">Settings</a>
@@ -185,11 +394,37 @@
       </nav>
     </div>
 
+    <header class="hero">
+      <div class="hero-row">
+        <div>
+          <h1>Menu management</h1>
+          <p class="subtitle">Keep the catalog fresh, consistent, and ready for AI-assisted drafts, customer orders, and kitchen operations.</p>
+          <div class="hero-meta">
+            <span class="pill"><span class="pill-dot"></span> Live catalog</span>
+            <span class="pill"><span class="pill-dot"></span> Barcode ready</span>
+            <span class="pill"><span class="pill-dot"></span> Staff controlled</span>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="mini-stat">
+            <div class="stat-box">
+              <span class="label">Status</span>
+              <strong>Online</strong>
+            </div>
+            <div class="stat-box">
+              <span class="label">Access</span>
+              <strong>Staff</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
     <div class="layout">
-      <section class="card">
-        <div class="topbar" style="margin: 0 0 12px;">
-          <h1>Menu Management</h1>
-          <form id="staff-key-form" class="key-box">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Catalog</h2>
+          <form id="staff-key-form" class="key-form">
             <input id="staff-key" type="password" placeholder="Staff key" aria-label="Staff key">
             <button type="submit">Load</button>
           </form>
@@ -199,8 +434,10 @@
         <div id="menu-list" class="menu-list"></div>
       </section>
 
-      <aside class="card">
-        <h2>Add item</h2>
+      <aside class="panel">
+        <div class="panel-header">
+          <h2>Add item</h2>
+        </div>
         <form id="menu-form">
           <input id="name" type="text" placeholder="Name" required>
           <input id="category" type="text" placeholder="Category" required>

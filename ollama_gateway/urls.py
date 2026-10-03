@@ -16,10 +16,19 @@ restaurant_browser_urls = [
     path("staff/settings/", staff_settings_page, name="restaurant-staff-settings-page"),
 ]
 
+legacy_restaurant_urls = [
+    path("order/", customer_order_page, name="legacy-restaurant-order-page"),
+    path("staff/", staff_dashboard_page, name="legacy-restaurant-staff-dashboard-page"),
+    path("staff/kitchen/", staff_kitchen_page, name="legacy-restaurant-staff-kitchen-page"),
+    path("staff/menu/", staff_menu_page, name="legacy-restaurant-staff-menu-page"),
+    path("staff/settings/", staff_settings_page, name="legacy-restaurant-staff-settings-page"),
+]
+
 urlpatterns = [
     path("", chat_interface, name="chat-interface"),
     path("chat/", include("chat.urls")),
     path("restaurant/", include(restaurant_browser_urls)),
+    *legacy_restaurant_urls,
     path("api/", include("api.urls")),
     path("api/restaurant/", include("restaurant.urls")),
 ]
