@@ -1,0 +1,94 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4efe9">
+  <title>{% block title %}OrgForms{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'app.css' %}?v=20261021-page-toolbar">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{% url 'home' %}{% if user.is_authenticated and active_navigation_organization %}?org={{ active_navigation_organization.slug }}{% endif %}" aria-label="OrgForms home">
+      <span class="brand-mark">OF</span><span>OrgForms</span>
+    </a>
+    {% if user.is_authenticated %}
+    <nav class="top-nav" aria-label="Main navigation">
+        <a class="{% if request.resolver_match.url_name == 'dashboard' and personal_tab != 'submissions' %}active{% endif %}" href="{% url 'organizations:dashboard' %}{% if personal_space %}?space=personal{% endif %}"{% if request.resolver_match.url_name == 'dashboard' and personal_tab != 'submissions' %} aria-current="page"{% endif %}>Dashboard</a>
+        {% if personal_space %}
+          <a class="{% if personal_tab == 'submissions' %}active{% endif %}" href="{% url 'organizations:dashboard' %}?space=personal&amp;tab=submissions"{% if personal_tab == 'submissions' %} aria-current="page"{% endif %}>Submissions</a>
+        {% elif active_navigation_organization %}
+          <a class="{% if request.resolver_match.url_name == 'detail' or request.resolver_match.url_name == 'form-new' or request.resolver_match.url_name == 'form-edit' %}active{% endif %}" href="{% url 'organizations:detail' active_navigation_organization.slug %}#organization-forms">Forms</a>
+          <a class="{% if request.resolver_match.url_name == 'all-submissions' or request.resolver_match.url_name == 'submissions' %}active{% endif %}" href="{% url 'forms:all-submissions' active_navigation_organization.slug %}">Submissions</a>
+          <a class="{% if request.resolver_match.url_name == 'people' %}active{% endif %}" href="{% url 'organizations:people' active_navigation_organization.slug %}">People</a>
+          <a class="{% if request.resolver_match.url_name == 'chat' %}active{% endif %}" href="{% url 'chat:chat' %}?org={{ active_navigation_organization.slug }}"><span aria-hidden="true">✧</span> AI Hub</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    <span class="topbar-spacer"></span>
+    <div class="top-actions">
+      <button class="shortcut-trigger" type="button" id="shortcuts-open" aria-haspopup="dialog" aria-controls="shortcuts-dialog" title="Keyboard shortcuts (?)"><kbd>?</kbd><span>Shortcuts</span></button>
+      <button class="icon-button" type="button" id="theme-toggle" aria-label="Switch to dark mode" title="Toggle theme"><span aria-hidden="true">◐</span></button>
+      {% if user.is_authenticated %}
+        <details class="profile-menu">
+          <summary aria-label="Open account menu"><span class="user-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.7-3.4 3-5.2 6.5-5.2s5.8 1.8 6.5 5.2"/></svg></span><span class="profile-chevron" aria-hidden="true">⌄</span></summary>
+          <div class="profile-dropdown">
+            <div class="profile-identity"><span class="profile-identity-label">Signed in as</span><strong>{{ user.email|default:user.username }}</strong></div>
+            <a class="profile-dropdown-link" href="{% url 'accounts:profile' %}">Profile <span>Personal details and password</span></a>
+            <div class="profile-space-section">
+              <span class="profile-space-label">Switch space</span>
+              <nav class="profile-space-links" aria-label="Switch space">
+                <a class="profile-space-link{% if not personal_space %} active{% endif %}" href="{% if workspace_navigation_organization %}{% url 'organizations:detail' workspace_navigation_organization.slug %}{% else %}{% url 'organizations:dashboard' %}?space=organization{% endif %}"{% if not personal_space %} aria-current="page"{% endif %}>
+                  <span>Organization</span>{% if not personal_space %}<span class="profile-space-check" aria-hidden="true">✓</span>{% endif %}
+                </a>
+                <a class="profile-space-link{% if personal_space %} active{% endif %}" href="{% url 'organizations:dashboard' %}?space=personal"{% if personal_space %} aria-current="page"{% endif %}>
+                  <span>Personal</span>{% if personal_space %}<span class="profile-space-check" aria-hidden="true">✓</span>{% endif %}
+                </a>
+              </nav>
+            </div>
+            <form method="post" action="{% url 'accounts:logout' %}" class="signout-form">{% csrf_token %}<button class="signout-button" type="submit">Sign out</button></form>
+          </div>
+        </details>
+      {% else %}
+        <a class="header-signin" href="{% url 'accounts:login' %}">Sign in</a>
+        <a class="header-get-started" href="{% url 'accounts:signup' %}">Get started <span aria-hidden="true">↗</span></a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+{% if messages %}
+<section class="toast-stack" aria-label="Notifications" aria-live="polite" aria-relevant="additions">
+  {% for message in messages %}
+    <div class="message toast-notification" data-kind="{{ message.tags }}" data-toast role="status">
+      <span class="toast-message-text">{{ message }}</span>
+      <button class="toast-dismiss" type="button" data-toast-dismiss aria-label="Dismiss notification">×</button>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+<main class="app-main">
+  {% block content %}{% endblock %}
+</main>
+<dialog class="shortcuts-dialog" id="shortcuts-dialog" aria-labelledby="shortcuts-title">
+  <div class="shortcuts-heading"><div><p class="eyebrow">Quick reference</p><h2 id="shortcuts-title">Keyboard shortcuts</h2></div><button class="icon-button" type="button" id="shortcuts-close" aria-label="Close shortcuts">×</button></div>
+  <dl class="shortcut-list">
+    <div><dt><kbd>Enter</kbd></dt><dd>Submit the focused form, including sign in and sign up</dd></div>
+    <div><dt><kbd>Enter</kbd></dt><dd>Send your message from chat</dd></div>
+    <div><dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>Start a new line in chat</dd></div>
+    <div><dt><kbd id="shortcut-modifier">⌘</kbd> + <kbd>Enter</kbd></dt><dd>Submit the current form from a multiline field</dd></div>
+    <div><dt><kbd>?</kbd></dt><dd>Open this shortcut list</dd></div>
+    <div><dt><kbd>G</kbd> then <kbd>D</kbd></dt><dd>Open dashboard</dd></div>
+    <div><dt><kbd>G</kbd> then <kbd>F</kbd></dt><dd>Open forms for this organization</dd></div>
+    <div><dt><kbd>G</kbd> then <kbd>S</kbd></dt><dd>Open submissions</dd></div>
+    <div><dt><kbd>G</kbd> then <kbd>P</kbd></dt><dd>Open people and access</dd></div>
+    <div><dt><kbd>G</kbd> then <kbd>A</kbd></dt><dd>Open AI Hub</dd></div>
+    <div><dt><kbd>Esc</kbd></dt><dd>Close this list</dd></div>
+  </dl>
+  <p class="shortcuts-note">Shortcuts are inactive while you type in a field, except for the form and chat actions above.</p>
+</dialog>
+<script src="{% static 'app.js' %}?v=20261021-page-toolbar" defer></script>
+</body>
+</html>

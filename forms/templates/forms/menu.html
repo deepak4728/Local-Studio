@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ organization.name }} catalog · OrgForms{% endblock %}
+{% block content %}
+<p class="eyebrow"><a href="{% url 'organizations:detail' organization.slug %}">{{ organization.name }}</a> / Item catalog</p>
+<div class="page-heading"><h1>Item catalog</h1><p class="lede">Add the items customers can choose in your forms.</p></div>
+<section class="surface menu-editor"><h2>Add an item</h2><form method="post">{% csrf_token %}
+  <div class="row"><div class="field"><label for="name">Item name</label><input id="name" name="name" required placeholder="Dal Baati Churma"></div><div class="field"><label for="category">Category</label><input id="category" name="category" placeholder="Main course"></div><div class="field"><label for="price">Price (₹)</label><input id="price" name="price" type="number" min="0" step="0.01" required></div></div>
+  <div class="field"><label for="description">Description (optional)</label><input id="description" name="description"></div><button>Add item</button>
+</form></section>
+<section class="surface menu-items"><div class="section-heading"><h2>Catalog items</h2><span class="muted">{{ items|length }} item{{ items|length|pluralize }}</span></div>{% if items %}<div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Availability</th><th></th></tr></thead><tbody>{% for item in items %}<tr><td>{{ item.name }}{% if item.description %}<div class="muted">{{ item.description }}</div>{% endif %}</td><td>{{ item.category }}</td><td>₹{{ item.price }}</td><td><span class="status-label"><span class="status-dot"></span>{% if item.is_available %}Available{% else %}Hidden{% endif %}</span></td><td><form method="post">{% csrf_token %}<input type="hidden" name="action" value="availability"><input type="hidden" name="item_id" value="{{ item.pk }}"><button class="secondary">{% if item.is_available %}Hide{% else %}Show{% endif %}</button></form></td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="muted">Your catalog is empty. Add the first item above.</p>{% endif %}</section>
+{% endblock %}

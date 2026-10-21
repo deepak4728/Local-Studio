@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Access required · OrgForms{% endblock %}
+{% block content %}
+<section class="surface empty-state">
+  <p class="eyebrow">Access required</p><h1>This account does not have access.</h1>
+  <p class="lede" style="margin:14px auto 22px">Ask the organization admin or form manager to grant access to your account.</p>
+  {% if user.is_authenticated %}<a class="button" href="{% url 'organizations:dashboard' %}">Your organizations</a><p class="muted">If you were invited with a different email, sign out and sign in with that account.</p>{% else %}<a class="button" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Sign in</a>{% endif %}
+</section>
+{% endblock %}

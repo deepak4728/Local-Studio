@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Profile · OrgForms{% endblock %}
+{% block content %}
+<section class="page-heading profile-heading"><div><p class="eyebrow">Your account</p><h1>Profile</h1><p class="lede">Manage your sign-in details and personal information.</p></div></section>
+<div class="profile-settings-grid">
+  <section class="surface profile-settings-card">
+    <div class="section-heading"><div><h2>Personal details</h2><p class="muted">Update how your account is identified in OrgForms.</p></div></div>
+    <form method="post" class="profile-settings-form">{% csrf_token %}<input type="hidden" name="action" value="details">
+      {% for field in details_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+      {% for error in details_form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
+      <button type="submit">Save profile</button>
+    </form>
+  </section>
+  <section class="surface profile-settings-card">
+    <div class="section-heading"><div><h2>Sign-in security</h2><p class="muted">Change your password when you need to.</p></div><button type="button" class="button secondary" data-open-dialog="password-dialog">Change password</button></div>
+  </section>
+</div>
+
+<section class="surface profile-portfolio-card">
+  <div class="section-heading"><div><p class="eyebrow">Personal portfolio</p><h2>Details you can reuse</h2><p class="muted">Keep preferences and facts in a JSON profile. Form assistance can use it only when you turn on the option below.</p></div><span class="pill">Private to you</span></div>
+  <form method="post" class="profile-settings-form">{% csrf_token %}<input type="hidden" name="action" value="portfolio">
+    <div class="field"><label for="portfolio-phone">Mobile number</label><input id="portfolio-phone" name="phone_number" type="tel" autocomplete="tel" value="{{ portfolio.phone_number }}" placeholder="+91 98765 43210"></div>
+    <div class="field"><label for="portfolio-json">Personal details and preferences (JSON)</label><textarea id="portfolio-json" name="profile_data" rows="10" spellcheck="false">{{ portfolio_json }}</textarea><span class="field-hint">Example: {"skills": ["..."], "preferences": {"contact": "email"}}</span>{% if portfolio_error %}<p class="error">{{ portfolio_error }}</p>{% endif %}</div>
+    <label class="portfolio-opt-in"><input type="checkbox" name="use_for_form_assistance" {% if portfolio.use_for_form_assistance %}checked{% endif %}> Allow saved details to be suggested for form assistance</label>
+    <label class="portfolio-opt-in"><input type="checkbox" name="auto_update_from_submissions" {% if portfolio.auto_update_from_submissions %}checked{% endif %}> Add my submitted form answers to this portfolio</label>
+    <p class="field-hint">Review each form before submitting. Identity documents are never attached to an AI request automatically.</p>
+    <button type="submit">Save portfolio</button>
+  </form>
+</section>
+
+<section class="surface profile-portfolio-card">
+  <div class="section-heading"><div><p class="eyebrow">Documents</p><h2>Private files</h2><p class="muted">Add a resume, identity document, license, or other file for your own reference.</p></div></div>
+  <form method="post" enctype="multipart/form-data" class="profile-document-upload">{% csrf_token %}<input type="hidden" name="action" value="upload-document"><div class="field"><label for="document-title">Name</label><input id="document-title" name="title" placeholder="Resume, PAN card…"></div><div class="field"><label for="document-kind">Type</label><select id="document-kind" name="kind"><option value="resume">Resume / CV</option><option value="identity">Identity document</option><option value="license">Driver license</option><option value="tax">Tax document</option><option value="other">Other</option></select></div><div class="field"><label for="document-file">File · PDF, Word, or image · up to 10 MB</label><input id="document-file" name="file" type="file" accept=".pdf,.docx,image/jpeg,image/png,image/webp" required></div><button type="submit">Upload privately</button></form>
+  <div class="personal-document-list">{% for document in personal_documents %}<div class="personal-document-row"><a href="{% url 'accounts:personal-document' document.pk %}">{{ document.title }}</a><span class="muted">{{ document.get_kind_display }} · {{ document.created_at|date:"M j, Y" }}</span><form method="post" onsubmit="return confirm('Permanently remove this private file?')">{% csrf_token %}<input type="hidden" name="action" value="delete-document"><input type="hidden" name="document_id" value="{{ document.pk }}"><button type="submit" class="button tertiary compact-button">Remove</button></form></div>{% empty %}<p class="muted">No personal files yet.</p>{% endfor %}</div>
+</section>
+
+<dialog class="workspace-dialog password-dialog" id="password-dialog" aria-labelledby="password-dialog-title" {% if password_form.errors %}open{% endif %}>
+  <div class="dialog-heading"><div><p class="eyebrow">Sign-in security</p><h2 id="password-dialog-title">Change password</h2><p class="muted">Your current password is never shown.</p></div><button type="button" class="icon-button" data-close-dialog aria-label="Close">×</button></div>
+  <form method="post" class="profile-settings-form">{% csrf_token %}<input type="hidden" name="action" value="password">
+    {% for field in password_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="field-hint">{{ field.help_text|safe }}</div>{% endif %}{% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    {% for error in password_form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}<button type="submit">Change password</button>
+  </form>
+</dialog>
+{% endblock %}

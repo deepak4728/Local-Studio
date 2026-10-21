@@ -1,0 +1,18 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}OrgForms{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'app.css' %}?v=20261016-ui25">
+  {% block head %}{% endblock %}
+</head>
+<body class="embedded-page">
+<main class="embedded-main">{% block content %}{% endblock %}</main>
+<script>
+document.documentElement.dataset.theme=localStorage.getItem('orgforms-theme')||'light';
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();window.parent.postMessage({type:'orgforms:close'},location.origin)}});
+document.addEventListener('keydown',event=>{if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){const form=event.target.closest('form');if(form){event.preventDefault();form.requestSubmit()}}});
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{
+  "device": "M1 Air",
+  "metrics": {
+    "tokens_per_second": "Generation speed measured during local inference",
+    "memory_mb": "Approximate active RAM observed during local inference"
+  },
+  "models": [
+    {
+      "name": "qwen3.5:0.8b",
+      "tokens_per_second": 41.92,
+      "memory_mb": 600,
+      "ollama_size_mb": 1300,
+      "recommendation": "Small Qwen for quick everyday questions"
+    },
+    {
+      "name": "gemma3:1b",
+      "tokens_per_second": 52.87,
+      "memory_mb": 158,
+      "ollama_size_mb": 815,
+      "recommendation": "Fastest · light everyday questions"
+    },
+    {
+      "name": "llama3.2:1b",
+      "tokens_per_second": 42.58,
+      "memory_mb": 230,
+      "ollama_size_mb": 1300,
+      "recommendation": "Quick general chat"
+    },
+    {
+      "name": "qwen3.5:2b",
+      "tokens_per_second": 25.88,
+      "memory_mb": 860,
+      "ollama_size_mb": 2700,
+      "recommendation": "Balanced Qwen with reasoning support"
+    },
+    {
+      "name": "gemma4:e2b",
+      "tokens_per_second": 31.43,
+      "memory_mb": 3277,
+      "ollama_size_mb": 7200,
+      "recommendation": "Reasoning with a larger memory cost"
+    },
+    {
+      "name": "qwen3.5:4b",
+      "tokens_per_second": 17.61,
+      "memory_mb": 4260,
+      "ollama_size_mb": 3400,
+      "recommendation": "Larger Qwen; slowest in this test"
+    }
+  ]
+}

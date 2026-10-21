@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}{{ form.title }} · {{ organization.name }}{% endblock %}
+{% block content %}
+<section class="public-form surface">
+  <p class="eyebrow">{{ organization.name }}</p><h1>{{ form.title }}</h1><p class="lede">{{ form.description }}</p>
+  <p><span class="pill">{{ form.get_visibility_display }}</span></p>
+  <form id="dynamic-form">
+    {% csrf_token %}
+    <div class="field"><label for="quick-fill">Quick fill (optional)</label><textarea id="quick-fill" placeholder="Type details in one message, for example: name Rahul; email rahul@example.com; phone 9876543210"></textarea>{% if portfolio_assistance_enabled %}<label class="portfolio-opt-in"><input id="include-saved-profile" type="checkbox"> Include my saved profile details for suggestions</label>{% endif %}<button type="button" class="secondary" id="classify-fill">Suggest field values</button> <span id="classify-status" class="muted"></span><p class="muted">Suggestions stay editable. Please review them before submitting.</p></div>
+    <div id="fields"></div>
+    <div class="field"><label>Name (optional)</label><input name="__orgforms_respondent_name"></div>
+    <div class="field"><label>Email (optional)</label><input name="__orgforms_respondent_email" type="email"></div>
+    <button type="submit">Submit response</button><p id="form-status" class="muted"></p>
+  </form>
+  <section class="response-success" id="response-success" hidden tabindex="-1" aria-live="polite" aria-labelledby="response-success-title">
+    <span class="response-success-mark" aria-hidden="true">✓</span>
+    <p class="eyebrow">Response received</p>
+    <h2 id="response-success-title">Thank you for your response</h2>
+    <p class="muted" id="response-success-message">Your response has been submitted.</p>
+    <div class="response-success-actions">
+      <button type="button" id="edit-response" class="button secondary" hidden>Edit response</button>
+      <button type="button" id="submit-another-response">Submit another response</button>
+      <a class="button tertiary" href="{% url 'home' %}">Finish</a>
+    </div>
+  </section>
+</section>
+{{ form.schema|json_script:"form-schema" }}
+{{ menu_items|json_script:"catalog-items" }}
+{{ field_catalogs|json_script:"field-catalogs" }}
+<script>
+const schema=JSON.parse(document.getElementById('form-schema').textContent);
+const fieldCatalogs=JSON.parse(document.getElementById("field-catalogs").textContent);
+const menu=JSON.parse(document.getElementById('catalog-items').textContent);
+const root=document.getElementById('fields');
+
+function updateConditions(){
+  for(const wrap of root.querySelectorAll('[data-when-field]')){
+    const dependency=root.querySelector(`[name="${CSS.escape(wrap.dataset.whenField)}"]`);
+    const value=dependency?.type==='checkbox'?String(dependency.checked):dependency?.value;
+    wrap.hidden=String(value)!==wrap.dataset.whenEquals;
+    for(const input of wrap.querySelectorAll('input,select,textarea'))input.required=!wrap.hidden&&input.dataset.formRequired==='true';
+  }
+}
+
+function renderFields(){
+  root.innerHTML='';
+  for(const field of schema.fields){
+    const wrap=document.createElement('div');wrap.className='field';
+    if(field.visibleWhen){wrap.dataset.whenField=field.visibleWhen.field;wrap.dataset.whenEquals=field.visibleWhen.equals}
+    const label=document.createElement('label');label.textContent=field.label+(field.required?' *':'');wrap.append(label);
+    if(field.type==='item_cards'){
+      for(const item of menu.filter(item=>item.catalog_id===fieldCatalogs[field.id])){
+        const row=document.createElement('div');row.className='menu-item-card';
+        const name=document.createElement('span');name.className='menu-item-name';name.textContent=`${item.name} · ₹${item.price}`;
+        const quantity=document.createElement('input');quantity.type='number';quantity.min='0';quantity.max='50';quantity.value='0';quantity.style.width='90px';quantity.dataset.menuItemId=item.id;quantity.setAttribute('aria-label',`Quantity for ${item.name}`);
+        row.append(name,quantity);wrap.append(row);
+      }
+      if(!menu.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='Items are not available yet.';wrap.append(empty)}
+      wrap.dataset.itemCards=field.id;root.append(wrap);continue;
+    }
+    let input;
+    if(['select','radio'].includes(field.type)){
+      input=document.createElement('select');
+      if(field.required){const empty=document.createElement('option');empty.value='';empty.textContent='Choose an option';input.append(empty)}
+      for(const optionValue of field.options||[]){const option=document.createElement('option');option.value=optionValue;option.textContent=optionValue;input.append(option)}
+    }else if(field.type==='textarea')input=document.createElement('textarea');
+    else if(field.type==='checkbox'){input=document.createElement('input');input.type='checkbox'}
+    else{input=document.createElement('input');input.type=field.type==='tel'?'tel':field.type==='rating'?'number':field.type;if(field.type==='file')input.accept='.pdf,.docx,.jpg,.jpeg,.png,.webp';if(field.min!==undefined)input.min=field.min;if(field.max!==undefined)input.max=field.max}
+    input.name=field.id;input.dataset.formRequired=String(!!field.required);if(field.placeholder)input.placeholder=field.placeholder;
+    input.addEventListener('change',updateConditions);wrap.append(input);if(field.type==='file'){const hint=document.createElement('small');hint.className='field-hint';hint.textContent='PDF, Word document, or image · up to 10 MB';wrap.append(hint)}root.append(wrap);
+  }
+  updateConditions();
+}
+renderFields();
+
+document.getElementById('classify-fill').addEventListener('click',async()=>{
+  const text=document.getElementById('quick-fill').value.trim();
+  const status=document.getElementById('classify-status');
+  if(!text){status.textContent='Enter a message first.';return}
+  status.textContent='Matching values…';
+  try{
+    const response=await fetch("{% url 'forms:api-public-classify' form.pk %}",{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value},body:JSON.stringify({text,use_saved_profile:document.getElementById('include-saved-profile')?.checked===true})});
+    const result=await response.json();if(!response.ok)throw new Error(result.detail||'Suggestions are unavailable.');
+    let filled=0;
+    for(const item of result.classifications||[]){
+      if(item.probability<0.55)continue;
+      const field=schema.fields.find(candidate=>candidate.id===item.predictedFieldId);
+      if(!field||field.type==='item_cards'||field.type==='file')continue;
+      const input=root.querySelector(`[name="${CSS.escape(field.id)}"]`);if(!input||input.closest('.field')?.hidden)continue;
+      const value=String(item.dataPoint||'').trim();
+      if(input.tagName==='SELECT'){const option=Array.from(input.options).find(choice=>choice.value.toLowerCase()===value.toLowerCase());if(option)input.value=option.value;else continue}
+      else if(input.type==='checkbox'){if(/^(yes|true|y)$/i.test(value))input.checked=true;else if(/^(no|false|n)$/i.test(value))input.checked=false;else continue}
+      else input.value=input.value?`${input.value} ${value}`:value;
+      input.dispatchEvent(new Event('change',{bubbles:true}));filled++;
+    }
+    status.textContent=filled?`${filled} suggestion${filled===1?'':'s'} added. Review and edit them below.`:'No confident matches found. Fill the fields manually.';
+  }catch(error){status.textContent=error.message}
+});
+
+const dynamicForm=document.getElementById('dynamic-form');
+const responseSuccess=document.getElementById('response-success');
+const responseSuccessMessage=document.getElementById('response-success-message');
+const editResponseButton=document.getElementById('edit-response');
+let responseEditToken='';
+
+editResponseButton.addEventListener('click',()=>{
+  responseSuccess.hidden=true;dynamicForm.hidden=false;
+  dynamicForm.querySelector('[type="submit"]').textContent='Save changes';
+  document.getElementById('form-status').textContent='Update your answers, then save your changes.';
+  dynamicForm.scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.getElementById('submit-another-response').addEventListener('click',()=>{
+  dynamicForm.reset();updateConditions();
+  responseEditToken='';
+  dynamicForm.querySelector('[type="submit"]').textContent='Submit response';
+  document.getElementById('form-status').textContent='';
+  document.getElementById('classify-status').textContent='';
+  responseSuccess.hidden=true;dynamicForm.hidden=false;
+  dynamicForm.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+dynamicForm.addEventListener('submit',async event=>{
+  event.preventDefault();const formElement=event.currentTarget,data={};
+  for(const field of schema.fields){
+    if(field.type==='item_cards'){
+      const wrap=root.querySelector(`[data-item-cards="${CSS.escape(field.id)}"]`);
+      data[field.id]=Array.from(wrap?.querySelectorAll('[data-menu-item-id]')||[]).map(input=>({menu_item_id:Number(input.dataset.menuItemId),quantity:Number(input.value)})).filter(item=>item.quantity>0);continue;
+    }
+    const input=formElement.elements[field.id];if(input)data[field.id]=field.type==='checkbox'?input.checked:field.type==='file'?(input.files?.length?'Uploaded document':''):input.value;
+  }
+  const status=document.getElementById('form-status'),submitButton=formElement.querySelector('[type="submit"]');
+  status.textContent='Submitting…';submitButton.disabled=true;
+  const editing=Boolean(responseEditToken);
+  try{
+    const body=new FormData();body.append('data',JSON.stringify(data));body.append('respondent_name',formElement.elements.__orgforms_respondent_name.value);body.append('respondent_email',formElement.elements.__orgforms_respondent_email.value);if(responseEditToken)body.append('edit_token',responseEditToken);for(const field of schema.fields){if(field.type==='file'){const input=formElement.elements[field.id];if(input?.files?.[0])body.append(field.id,input.files[0])}}
+    const response=await fetch(location.href,{method:'POST',headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value},body});
+    const result=await response.json().catch(()=>({errors:{detail:'Unable to submit. Reload this page and try again.'}}));
+    if(response.ok){
+      responseEditToken=result.edit_token||responseEditToken;
+      responseSuccessMessage.textContent=editing?'Your changes have been saved.':'Your response has been submitted.';
+      editResponseButton.hidden=!(result.can_edit&&responseEditToken);
+      formElement.hidden=true;responseSuccess.hidden=false;responseSuccess.focus();
+      formElement.querySelector('[type="submit"]').textContent='Submit response';
+    }
+    else{const errors=result.errors||result;status.textContent=Object.entries(errors).map(([key,value])=>`${schema.fields.find(field=>field.id===key)?.label||(key==='detail'?'':key)} ${Array.isArray(value)?value.join(' '):value}`).join(' · ')}
+  }catch(error){status.textContent='The response could not be sent. Check your connection and try again.'}
+  finally{submitButton.disabled=false}
+
+});
+</script>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Manage {{ organization.name }} · OrgForms{% endblock %}
+{% block content %}
+<p class="eyebrow"><a href="{% url 'organizations:dashboard' %}">Organizations</a> / <a href="{% url 'organizations:detail' organization.slug %}">{{ organization.name }}</a> / Manage</p>
+<div class="page-heading"><div class="section-heading"><div><p class="eyebrow">Organization settings</p><h1>{{ organization.name }}</h1><p class="lede">Details, access, ownership, and organization lifecycle.</p></div><a class="button secondary" href="{% url 'organizations:detail' organization.slug %}">Back to organization</a></div></div>
+
+<div class="org-settings-metrics">
+  <div class="surface"><span>Forms</span><strong>{{ forms_count }}</strong></div>
+  <div class="surface"><span>Responses</span><strong>{{ submissions_count }}</strong></div>
+  <div class="surface"><span>People</span><strong>{{ membership_count }}</strong></div>
+</div>
+
+{% if organization.is_archived %}<div class="message archived-notice">This organization is archived. Public forms are paused, and forms and menu details are read-only until restored.</div>{% endif %}
+
+<section class="surface settings-section">
+  <div class="section-heading"><div><p class="eyebrow">Organization profile</p><h2>Edit organization details</h2><p class="muted">Category-specific suggestions are saved as part of this organization.</p></div></div>
+  {% if can_edit_details %}
+  <form method="post" data-profile-form data-profile-initial="{{ profile_data_json|escape }}">{% csrf_token %}<input type="hidden" name="action" value="update-details">
+    <div class="row"><div class="field"><label for="settings-org-name">Organization name</label><input id="settings-org-name" name="name" required maxlength="200" value="{{ organization.name }}"></div><div class="field"><label for="settings-org-type">Category</label><select id="settings-org-type" name="business_type" data-profile-type>{% for value,label in organization_types %}<option value="{{ value }}" {% if organization.business_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></div>
+    <div class="field"><label for="settings-description">Description</label><textarea id="settings-description" name="description">{{ organization.description }}</textarea></div>
+    <div class="field"><label for="settings-purpose">Purpose</label><input id="settings-purpose" name="purpose" maxlength="80" value="{{ organization.purpose }}" placeholder="Orders, bookings, feedback…"></div>
+    <section class="profile-library-panel"><div class="profile-library-heading"><div><p class="eyebrow">Organization details library</p><h3>Details for this category</h3></div><span class="muted">Optional · visible to your team</span></div><div data-profile-fields class="profile-library-grid"></div><p class="profile-library-note">Change the category to see its suggested details. Existing values are kept when the field is available in the new category.</p></section>
+    <input type="hidden" name="profile_data" value="{}">
+    <div class="settings-save-row"><span class="muted">The public link remains stable when you change the display name.</span><button type="submit">Save details</button></div>
+  </form>
+  {% else %}<p class="muted">A manager or admin can edit this organization’s profile.</p>{% endif %}
+</section>
+
+<section class="surface settings-section" id="members">
+  <div class="section-heading"><div><p class="eyebrow">Team access</p><h2>Members and roles</h2><p class="muted">Admins manage the organization. Managers maintain forms and operations. Members can work with organization data.</p></div><span class="pill">{{ membership_count }} people</span></div>
+  <div class="settings-member-list">
+    {% for member in members %}
+    <div class="settings-member-row">
+      <div class="settings-member-identity"><span class="member-avatar">{{ member.user.email|default:member.user.username|first|upper }}</span><span><strong>{{ member.user.email|default:member.user.username }}</strong><small>{% if member.user_id == organization.created_by_id %}Owner{% else %}Organization member{% endif %}</small></span></div>
+      {% if can_manage_members and member.user_id != organization.created_by_id %}
+      <form method="post" class="member-role-form">{% csrf_token %}<input type="hidden" name="action" value="update-role"><input type="hidden" name="membership_id" value="{{ member.pk }}"><label class="sr-only" for="role-{{ member.pk }}">Role for {{ member.user.email|default:member.user.username }}</label><select id="role-{{ member.pk }}" name="role"><option value="member" {% if member.role == 'member' %}selected{% endif %}>Member</option><option value="manager" {% if member.role == 'manager' %}selected{% endif %}>Manager</option><option value="admin" {% if member.role == 'admin' %}selected{% endif %}>Admin</option></select><button class="button secondary compact-button">Save role</button></form>
+      {% else %}<span class="pill">{{ member.get_role_display }}</span>{% endif %}
+      {% if can_manage_members and member.user_id != organization.created_by_id and member.user_id != request.user.pk %}<form method="post" class="member-remove-form" onsubmit="return confirm('Remove this person from the organization?')">{% csrf_token %}<input type="hidden" name="action" value="remove-member"><input type="hidden" name="membership_id" value="{{ member.pk }}"><button class="button tertiary compact-button">Remove</button></form>{% endif %}
+    </div>
+    {% empty %}<p class="muted">No members are attached to this organization yet.</p>{% endfor %}
+  </div>
+  {% if can_manage_members %}<form method="post" class="add-member-form">{% csrf_token %}<input type="hidden" name="action" value="add-member"><div><p class="eyebrow">Add a teammate</p><h3>Invite an existing OrgForms account</h3><p class="muted">They can create an account first; then add their email here.</p></div><div class="row"><div class="field"><label for="new-member-email">Email</label><input id="new-member-email" name="email" type="email" placeholder="person@example.com" required></div><div class="field"><label for="new-member-role">Role</label><select id="new-member-role" name="role"><option value="member">Member</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div><button type="submit">Add member</button></div></form>{% endif %}
+</section>
+
+{% if can_transfer %}
+<section class="surface settings-section">
+  <div class="section-heading"><div><p class="eyebrow">Ownership</p><h2>Transfer ownership</h2><p class="muted">The new owner becomes an admin. Your current access changes to manager.</p></div></div>
+  {% if transfer_targets %}<form method="post" class="row lifecycle-form">{% csrf_token %}<input type="hidden" name="action" value="transfer-ownership"><div class="field"><label for="new-owner">New owner</label><select id="new-owner" name="membership_id" required>{% for member in transfer_targets %}<option value="{{ member.pk }}">{{ member.user.email|default:member.user.username }} · {{ member.get_role_display }}</option>{% endfor %}</select></div><button type="submit" class="button secondary" onclick="return confirm('Transfer organization ownership to this member?')">Transfer ownership</button></form>{% else %}<p class="muted">Add a member first. Ownership can only be transferred to an existing organization member.</p>{% endif %}
+</section>
+{% endif %}
+
+{% if can_archive or can_delete %}
+<section class="surface settings-section lifecycle-section">
+  <div class="section-heading"><div><p class="eyebrow">Organization lifecycle</p><h2>Archive or delete</h2><p class="muted">Archiving pauses public forms but preserves data. Deletion permanently removes the organization’s forms, responses, documents, and restaurant data.</p></div></div>
+  <div class="lifecycle-actions">
+    {% if can_archive %}<form method="post" class="lifecycle-card">{% csrf_token %}<input type="hidden" name="action" value="{% if organization.is_archived %}restore{% else %}archive{% endif %}"><div><h3>{% if organization.is_archived %}Restore organization{% else %}Archive organization{% endif %}</h3><p class="muted">{% if organization.is_archived %}Return it to your active organization list and resume public forms.{% else %}Hide it from the active list. You can restore it later.{% endif %}</p></div><button class="button secondary" type="submit">{% if organization.is_archived %}Restore{% else %}Archive{% endif %}</button></form>{% endif %}
+    {% if can_delete %}<form method="post" class="lifecycle-card delete-card" onsubmit="return confirm('This permanently deletes all organization data. Continue?')">{% csrf_token %}<input type="hidden" name="action" value="delete"><div><h3>Delete organization</h3><p class="muted">This cannot be undone. Type <strong>{{ organization.name }}</strong> below to confirm.</p><div class="field"><label for="confirm-delete-name">Organization name</label><input id="confirm-delete-name" name="confirm_name" autocomplete="off" required></div></div><button class="button danger-button" type="submit">Delete permanently</button></form>{% endif %}
+  </div>
+</section>
+{% endif %}
+{{ profile_library|json_script:"organization-profile-library" }}
+{{ organization.profile_data|json_script:"organization-profile-data-initial" }}
+{% endblock %}

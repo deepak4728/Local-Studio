@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}People · {{ organization.name }} · OrgForms{% endblock %}
+{% block content %}
+<section class="workspace-banner workspace-action-banner people-banner">
+  <div><p class="eyebrow">{{ organization.name }}</p><h1>People</h1><p class="lede">Manage your team’s membership and organization access.</p></div>
+  <div class="workspace-banner-actions">{% if can_manage_members %}<button class="button secondary" type="button" data-open-dialog="group-create">Create group</button><button type="button" data-open-dialog="add-member-dialog">＋ Add member</button>{% else %}<span class="pill">Your role: {{ membership.get_role_display }}</span>{% endif %}</div>
+  <div class="workspace-banner-tools people-directory-tools" data-people-tools>
+    <label class="search-field"><span aria-hidden="true">⌕</span><input type="search" data-people-search placeholder="Search names, emails, or groups…" aria-label="Search members"></label>
+    <div class="people-role-filter" role="group" aria-label="Filter members by role">
+      <button type="button" data-people-role="" aria-pressed="true">All</button>
+      <button type="button" data-people-role="admin" aria-pressed="false">Admin</button>
+      <button type="button" data-people-role="manager" aria-pressed="false">Manager</button>
+      <button type="button" data-people-role="member" aria-pressed="false">Member</button>
+    </div>
+    <span class="record-count" data-people-count aria-live="polite">{{ membership_count }} member{{ membership_count|pluralize }}</span>
+  </div>
+</section>
+
+<div class="people-summary" aria-label="Team overview">
+  <div><strong>{{ membership_count }}</strong><span>Member{{ membership_count|pluralize }}</span></div>
+  <div><strong>{{ role_counts.admin }}</strong><span>Admin{{ role_counts.admin|pluralize }}</span></div>
+  <div><strong>{{ groups|length }}</strong><span>Group{{ groups|length|pluralize }}</span></div>
+  <p>Roles apply across {{ organization.name }}.<br>Groups organize access to selected forms.</p>
+</div>
+<nav class="tab-row people-tabs" role="tablist" aria-label="People views">
+  <button type="button" role="tab" data-people-tab="members" id="tab-members" aria-controls="panel-members" aria-selected="true">Members <span>{{ membership_count }}</span></button>
+  <button type="button" role="tab" data-people-tab="groups" id="tab-groups" aria-controls="panel-groups" aria-selected="false" tabindex="-1">Groups <span>{{ groups|length }}</span></button>
+  <button type="button" role="tab" data-people-tab="roles" id="tab-roles" aria-controls="panel-roles" aria-selected="false" tabindex="-1">Role guide</button>
+</nav>
+<section id="panel-members" role="tabpanel" aria-labelledby="tab-members" data-people-panel="members">
+  <section class="surface people-list-card" aria-label="Organization members">
+    <div class="people-list-heading"><span>Member</span><span>Organization role · Your role: {{ membership.get_role_display }}</span></div>
+    <div class="people-member-list">
+    {% for member in members %}
+    <div class="people-member-row" data-people-member data-role="{{ member.role }}" data-search-text="{{ member.user.get_full_name }} {{ member.user.username }} {{ member.user.email }} {% for group in member.people_groups %}{{ group.name }} {{ group.alias }} {% endfor %}">
+      <div class="people-identity"><span class="member-avatar">{{ member.user.email|default:member.user.username|first|upper }}</span><span><strong>{{ member.user.get_full_name|default:member.user.username }}{% if member.user_id == request.user.pk %}<small class="people-you">(you)</small>{% endif %}</strong><small>{% if member.user.get_full_name or member.user.username != member.user.email %}{{ member.user.email|default:member.user.username }}{% if member.user_id == organization.created_by_id %} · Owner{% endif %}{% elif member.user_id == organization.created_by_id %}Organization owner{% else %}Joined {{ member.created_at|date:"M j, Y" }}{% endif %}</small>{% if member.people_groups %}<span class="people-member-groups">{% for group in member.people_groups %}<span>@{{ group.alias }}</span>{% endfor %}</span>{% endif %}</span></div>
+      {% if can_manage_members and member.user_id != organization.created_by_id and member.user_id != request.user.pk %}<form method="post" action="{% url 'organizations:settings' organization.slug %}" class="people-role-form">{% csrf_token %}<input type="hidden" name="action" value="update-role"><input type="hidden" name="return_to" value="people"><input type="hidden" name="membership_id" value="{{ member.pk }}"><label class="sr-only" for="people-role-{{ member.pk }}">Role for {{ member.user.email|default:member.user.username }}</label><select id="people-role-{{ member.pk }}" name="role"><option value="member" {% if member.role == 'member' %}selected{% endif %}>Member</option><option value="manager" {% if member.role == 'manager' %}selected{% endif %}>Manager</option><option value="admin" {% if member.role == 'admin' %}selected{% endif %}>Admin</option></select><button class="button secondary compact-button" type="submit">Save</button></form>{% else %}<span class="people-role-pill"><i></i>{{ member.get_role_display }}</span>{% endif %}
+      {% if can_manage_members and member.user_id != organization.created_by_id and member.user_id != request.user.pk %}<form method="post" action="{% url 'organizations:settings' organization.slug %}" onsubmit="return confirm('Remove this person from the organization?')">{% csrf_token %}<input type="hidden" name="action" value="remove-member"><input type="hidden" name="return_to" value="people"><input type="hidden" name="membership_id" value="{{ member.pk }}"><button class="button tertiary compact-button" type="submit">Remove</button></form>{% endif %}
+    </div>
+    {% empty %}<p class="muted">No members have joined this organization yet.</p>{% endfor %}
+    <p class="people-empty muted" data-people-no-results hidden>No members match your search.</p>
+    </div>
+  </section>
+  <p class="field-hint people-access-note">Only admins can add or remove members and change organization roles. The owner keeps admin access.</p>
+</section>
+<section id="panel-groups" role="tabpanel" aria-labelledby="tab-groups" data-people-panel="groups" hidden>
+  <div class="section-heading"><div><h2>Groups</h2><p class="muted">Assign a group alias to restricted forms instead of selecting each member.</p></div></div>
+  <div class="people-group-grid">{% for group in groups %}
+    <article class="surface people-group-card"><div class="section-heading"><h3>{{ group.name }}</h3><code>@{{ group.alias }}</code></div><p class="muted">{{ group.members.count }} member{{ group.members.count|pluralize }} · {{ group.form_count }} form{{ group.form_count|pluralize }}</p><div class="people-group-preview">{% for person in group.members.all|slice:":3" %}<span>{{ person.get_full_name|default:person.email|default:person.username }}</span>{% empty %}<span class="muted">No members assigned</span>{% endfor %}{% if group.members.count > 3 %}<span class="muted">+{{ group.members.count|add:"-3" }} more</span>{% endif %}</div>{% if can_manage_members %}<button class="button secondary" type="button" data-open-dialog="group-{{ group.pk }}">Edit group</button>{% endif %}</article>
+  {% empty %}<div class="surface people-group-empty"><h3>Organize access with groups</h3><p class="muted">Create a team such as reviewers, add organization members, and use its alias in form access settings.</p>{% if can_manage_members %}<button type="button" data-open-dialog="group-create">Create your first group</button>{% endif %}</div>{% endfor %}</div>
+</section>
+<section id="panel-roles" role="tabpanel" aria-labelledby="tab-roles" data-people-panel="roles" hidden>
+  <div class="section-heading"><div><h2>Organization roles</h2><p class="muted">Choose the access each person needs. Form editor assignments and group access are managed separately.</p></div></div>
+  <div class="surface people-role-guide"><article><div><h3>Admin</h3><span class="pill">{{ role_counts.admin }} assigned</span></div><p>Manage members, roles, groups, organization settings, forms, and submission records.</p></article><article><div><h3>Manager</h3><span class="pill">{{ role_counts.manager }} assigned</span></div><p>Create and manage forms, edit organization details, and review submission records.</p></article><article><div><h3>Member</h3><span class="pill">{{ role_counts.member }} assigned</span></div><p>Open available forms and view their submission records. Edit forms when assigned as an editor.</p></article></div>
+</section>
+{% if can_manage_members %}
+<dialog class="workspace-dialog people-edit-dialog" id="add-member-dialog" aria-labelledby="add-member-title"><div class="dialog-heading"><div><p class="eyebrow">{{ organization.name }}</p><h2 id="add-member-title">Add member</h2><p class="muted">Add someone with an existing OrgForms account.</p></div><button type="button" class="icon-button" data-close-dialog aria-label="Close">×</button></div>
+<form id="add-member" method="post" action="{% url 'organizations:settings' organization.slug %}" class="people-add-form people-dialog-form">{% csrf_token %}<input type="hidden" name="action" value="add-member"><input type="hidden" name="return_to" value="people"><div class="field"><label for="people-email">Member email address</label><input id="people-email" name="email" type="email" placeholder="person@example.com" required></div><div class="field"><label for="people-role">Access role</label><select id="people-role" name="role"><option value="member">Member</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div><button type="submit">Add member</button><p class="muted">Add an existing OrgForms account to this organization.</p></form></dialog>
+{% include "organizations/partials/group_dialog.html" with dialog_id="group-create" %}
+{% for group in groups %}{% include "organizations/partials/group_dialog.html" %}{% endfor %}
+{% endif %}
+{% endblock %}

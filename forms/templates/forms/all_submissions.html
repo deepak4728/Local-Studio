@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Submissions · {{ organization.name }} · OrgForms{% endblock %}
+{% block content %}
+<section class="workspace-banner workspace-action-banner">
+  <div><p class="eyebrow">{{ organization.name }}</p><h1>Submissions</h1><p class="lede">{% if selected_form %}{{ selected_form.title }}{% else %}All forms · {{ period_label|lower }}{% endif %}</p></div>
+  <div class="workspace-banner-actions">{% if can_review %}<a class="button secondary" href="?{{ pending_query }}">Pending review <span class="action-count">{{ pending_count }}</span></a>{% endif %}<a class="button secondary" href="#submission-ledger-title">View records</a><a class="button" href="?{{ export_query }}">Export CSV ↓</a></div>
+  <div id="submission-filters" class="workspace-banner-tools submission-analytics-filters" aria-label="Filter submission trends">
+    <div class="submission-filter-group">
+      <span class="submission-filter-label">Form</span>
+      <div class="submission-filter-options submission-form-options" role="group" aria-label="Filter trends by form">
+        <a class="submission-filter-chip" href="?period={{ selected_period }}&amp;grain={{ selected_grain }}&amp;status={{ selected_status }}" {% if not selected_form %}aria-current="true"{% endif %}>All forms <span>{{ form_count }}</span></a>
+        {% for form in form_choices %}<a class="submission-filter-chip" href="?form={{ form.pk }}&amp;period={{ selected_period }}&amp;grain={{ selected_grain }}&amp;status={{ selected_status }}" {% if selected_form.pk == form.pk %}aria-current="true"{% endif %}>{{ form.title }}</a>{% endfor %}
+      </div>
+    </div>
+    <div class="submission-filter-group">
+      <span class="submission-filter-label">Date range</span>
+      <div class="submission-filter-options" role="group" aria-label="Submission date range">
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period=24h&amp;grain=day&amp;status={{ selected_status }}" {% if selected_period == '24h' %}aria-current="true"{% endif %}>24 hours</a>
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period=7d&amp;grain=day&amp;status={{ selected_status }}" {% if selected_period == '7d' %}aria-current="true"{% endif %}>7 days</a>
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period=30d&amp;grain=day&amp;status={{ selected_status }}" {% if selected_period == '30d' %}aria-current="true"{% endif %}>30 days</a>
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period=90d&amp;grain=day&amp;status={{ selected_status }}" {% if selected_period == '90d' %}aria-current="true"{% endif %}>90 days</a>
+      </div>
+    </div>
+    <div class="submission-filter-group">
+      <span class="submission-filter-label">Group by</span>
+      <div class="submission-filter-options" role="group" aria-label="Submission trend interval">
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period=24h&amp;grain=hour&amp;status={{ selected_status }}" {% if selected_grain == 'hour' %}aria-current="true"{% endif %}>Hour</a>
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period={{ selected_period }}&amp;grain=day&amp;status={{ selected_status }}" {% if selected_grain == 'day' %}aria-current="true"{% endif %}>Day</a>
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period={{ selected_period }}&amp;grain=shift&amp;status={{ selected_status }}" {% if selected_grain == 'shift' %}aria-current="true"{% endif %}>Shift</a>
+      </div>
+    </div>
+    <div class="submission-filter-group">
+      <span class="submission-filter-label">Status</span>
+      <div class="submission-filter-options" role="group" aria-label="Filter by submission status">
+        <a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period={{ selected_period }}&amp;grain={{ selected_grain }}" {% if not selected_status %}aria-current="true"{% endif %}>All statuses</a>
+        {% for value,label in status_choices %}<a class="submission-filter-chip" href="?form={{ selected_form.pk }}&amp;period={{ selected_period }}&amp;grain={{ selected_grain }}&amp;status={{ value }}" {% if selected_status == value %}aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="submission-metrics" aria-label="Submission analytics">
+  <article class="surface metric-card"><span>Total submissions</span><strong>{{ total_count }}</strong><small>{{ period_label }}</small></article>
+  <article class="surface metric-card"><span>Identified respondents</span><strong>{{ identified_respondents }}</strong><small>Unique email or account</small></article>
+  <article class="surface metric-card"><span>Active forms</span><strong>{{ active_forms_count }}</strong><small>Accepting responses</small></article>
+  <article class="surface metric-card"><span>Daily intake rate</span><strong>{{ daily_rate }}</strong><small>Submissions per day</small></article>
+</section>
+
+<section class="surface submissions-chart-card" aria-labelledby="submission-trends-title">
+  <div class="section-heading"><div><h2 id="submission-trends-title">Submission trends</h2><p class="muted">{{ chart_description }}</p></div><span class="chart-legend"><i></i> Submissions</span></div>
+  <div class="submission-chart" role="group" aria-label="{{ chart_description }}" style="--chart-columns: {{ trend|length }}">
+    {% for point in trend %}<div class="chart-column" tabindex="0" aria-label="{{ point.detail }}: {{ point.count }} submission{{ point.count|pluralize }}" title="{{ point.detail }}: {{ point.count }} submission{{ point.count|pluralize }}"><span class="chart-bar" style="height:{{ point.height }}%"></span><span class="chart-tooltip" aria-hidden="true"><strong>{{ point.count }}</strong> submission{{ point.count|pluralize }}<small>{{ point.detail }}</small></span>{% if selected_grain == 'shift' or forloop.first or forloop.last or forloop.counter0|divisibleby:5 %}<small class="chart-axis-label">{{ point.label }}</small>{% endif %}</div>{% endfor %}
+  </div>
+</section>
+
+<section class="submissions-ledger-section" aria-labelledby="submission-ledger-title">
+  <div class="ledger-heading"><div><h2 id="submission-ledger-title">Submission records</h2><p class="muted">Review each response and the form that collected it.</p></div><span class="record-count">{{ total_count }} record{{ total_count|pluralize }} · latest {{ submissions|length }} shown</span></div>
+  <div class="submissions-filters"><label class="search-field"><span aria-hidden="true">⌕</span><input type="search" data-submission-search placeholder="Search ID, form, respondent, or answer…" aria-label="Search submissions"></label></div>
+  <div class="submission-table-wrap">
+    <table class="submission-table">
+      <thead><tr><th scope="col">Submission ID</th><th scope="col">Received</th><th scope="col">Form</th><th scope="col">Respondent</th><th scope="col">Status</th><th scope="col">Response details</th></tr></thead>
+      <tbody data-submission-list>
+        {% for submission in submissions %}
+          <tr data-submission-row data-search-text="SUB-{{ submission.pk }} {{ submission.form.title }} {{ submission.respondent_name }} {{ submission.respondent_email }} {{ submission.data }}">
+            <td class="submission-id">SUB-{{ submission.pk|stringformat:"06d" }}</td>
+            <td><time datetime="{{ submission.created_at|date:'c' }}" data-local-time><span data-local-date>{{ submission.created_at|date:"M j, Y" }}</span><small data-local-clock>{{ submission.created_at|date:"H:i" }} UTC</small></time></td>
+            <td><a href="{% url 'forms:all-submissions' organization.slug %}?form={{ submission.form_id }}">{{ submission.form.title }}</a></td>
+            <td>{{ submission.respondent_name|default:submission.respondent_email|default:"Anonymous respondent" }}{% if submission.respondent_name and submission.respondent_email %}<small>{{ submission.respondent_email }}</small>{% endif %}</td>
+            <td>
+              {% if can_review %}<form method="post" class="submission-status-form">{% csrf_token %}<input type="hidden" name="action" value="update-status"><input type="hidden" name="submission_id" value="{{ submission.pk }}"><label class="sr-only" for="submission-status-{{ submission.pk }}">Status for submission SUB-{{ submission.pk }}</label><select id="submission-status-{{ submission.pk }}" name="status" onchange="this.form.submit()" class="status-select status-{{ submission.status }}">{% for value,label in status_choices %}<option value="{{ value }}" {% if submission.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></form>{% else %}<span class="submission-status status-{{ submission.status }}">{{ submission.get_status_display }}</span>{% endif %}
+            </td>
+            <td><details class="submission-answer-details"><summary>View {{ submission.data|length }} answer{{ submission.data|length|pluralize }}</summary><dl>{% for key,value in submission.data.items %}<div><dt>{{ key }}</dt><dd>{{ value }}</dd></div>{% empty %}<div><dt>Response</dt><dd>No answer details available.</dd></div>{% endfor %}</dl>{% for attachment in submission.attachments.all %}<a class="submission-file-link" href="{% url 'forms:submission-attachment' attachment.pk %}">↓ {{ attachment.original_name }}</a>{% endfor %}</details></td>
+          </tr>
+        {% empty %}<tr class="empty-table-row"><td colspan="6">No submissions match these filters.</td></tr>{% endfor %}
+        <tr class="empty-table-row" data-submission-no-results hidden><td colspan="6">No matching submissions. Try a different search.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

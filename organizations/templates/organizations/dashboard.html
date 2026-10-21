@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{% if personal_space %}Personal space{% else %}Organizations{% endif %} · OrgForms{% endblock %}
+{% block content %}
+{% if not personal_space %}
+<section class="workspace-banner workspace-action-banner organizations-banner">
+  <div><h1>Organizations</h1><p class="lede">Organizations you own or collaborate within.</p></div>
+  <div class="workspace-banner-actions">{% if not showing_archived %}<button type="button" data-open-dialog="create-workspace-dialog"><span aria-hidden="true">＋</span> New organization</button>{% endif %}</div>
+  <div class="workspace-banner-tools dashboard-toolbar">
+    <nav class="tab-row dashboard-tabs" aria-label="Organization status">
+      <a class="{% if not showing_archived %}active{% endif %}" href="{% url 'organizations:dashboard' %}?ownership={{ ownership }}">Active</a>
+      <a class="{% if showing_archived %}active{% endif %}" href="{% url 'organizations:dashboard' %}?status=archived&amp;ownership={{ ownership }}">Archived</a>
+    </nav>
+    <div class="ownership-filter" role="group" aria-label="Filter organizations by access"><a class="ownership-filter-choice{% if ownership == 'owned' %} is-active{% endif %}" href="{% url 'organizations:dashboard' %}?{% if showing_archived %}status=archived&amp;{% endif %}ownership=owned" aria-label="Show organizations you own" {% if ownership == 'owned' %}aria-current="true"{% endif %}>Owner</a><a class="ownership-filter-choice{% if ownership == 'shared' %} is-active{% endif %}" href="{% url 'organizations:dashboard' %}?{% if showing_archived %}status=archived&amp;{% endif %}ownership=shared" aria-label="Show organizations shared with you" {% if ownership == 'shared' %}aria-current="true"{% endif %}>Shared</a>{% if ownership != 'all' %}<a class="ownership-filter-all" href="{% url 'organizations:dashboard' %}{% if showing_archived %}?status=archived{% endif %}">All organizations</a>{% else %}<span class="ownership-filter-all" aria-current="true">All organizations</span>{% endif %}</div>
+  </div>
+</section>
+<div class="message" data-dashboard-notice role="status" aria-live="polite" hidden></div>
+{% endif %}
+
+{% if personal_space %}
+<section class="workspace-banner personal-space-banner">
+  <div><p class="eyebrow">PERSONAL SPACE</p><h1>{% if personal_tab == 'submissions' %}Your submissions{% else %}Forms for you{% endif %}</h1><p class="lede">{% if personal_tab == 'submissions' %}A recent history of forms you submitted while signed in.{% else %}Find forms shared with your account and public forms you can open.{% endif %}</p></div>
+  {% if personal_tab == 'submissions' %}<div class="personal-space-count"><strong>{{ personal_submissions|length }}</strong><span>recent responses</span></div>{% endif %}
+</section>
+
+{% if personal_tab == 'submissions' %}
+<section class="personal-submissions-section" id="personal-submissions" aria-labelledby="personal-submissions-title">
+  <div class="section-heading"><div><p class="eyebrow">YOUR RECORDS</p><h2 id="personal-submissions-title">Submissions</h2><p class="muted">Only submissions linked to your signed-in account appear here.</p></div></div>
+  {% if personal_submissions %}
+    <div class="personal-submission-grid">
+      {% for submission in personal_submissions %}
+      <article class="surface personal-submission-card">
+        <div class="personal-submission-meta"><span>{{ submission.organization.name }}</span><span class="pill">{{ submission.get_status_display }}</span></div>
+        <h3>{{ submission.form.title }}</h3>
+        <p class="personal-submission-date">Submitted {{ submission.created_at|date:"M j, Y · g:i A" }}</p>
+        {% if submission.data %}<dl class="personal-submission-preview">{% for key,value in submission.data.items|slice:":3" %}<div><dt>{{ key|capfirst }}</dt><dd>{{ value|truncatechars:90 }}</dd></div>{% endfor %}</dl>{% endif %}
+        {% if submission.form.status == "active" %}<a class="personal-open-form" href="{% url 'forms:public-form' submission.organization.slug submission.form.slug %}">Open form <span aria-hidden="true">↗</span></a>{% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="surface personal-empty-state"><span class="personal-empty-icon" aria-hidden="true">▤</span><div><h3>No submissions yet</h3><p>When you submit a form while signed in, your response will appear here.</p></div></div>
+  {% endif %}
+</section>
+{% else %}
+<section class="personal-form-browser" aria-labelledby="personal-form-browser-title">
+  <div class="section-heading"><div><p class="eyebrow">BROWSE FORMS</p><h2 id="personal-form-browser-title">Available to you</h2><p class="muted">Search shared and public forms across organizations.</p></div></div>
+  <form class="personal-form-filters" method="get" action="{% url 'organizations:dashboard' %}">
+    <input type="hidden" name="space" value="personal">
+    <label class="personal-form-search"><span class="sr-only">Search forms</span><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><circle cx="8.8" cy="8.8" r="5.6"/><path d="m13 13 4 4"/></svg><input type="search" name="q" value="{{ personal_form_query }}" placeholder="Search forms or organizations"></label>
+    <label class="personal-category-filter"><span>Category</span><select name="category"><option value="all"{% if personal_form_category == 'all' %} selected{% endif %}>All categories</option>{% for value,label in organization_types %}<option value="{{ value }}"{% if personal_form_category == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <button class="button secondary compact-button" type="submit">Filter</button>
+  </form>
+
+  {% if shared_forms %}
+  <section class="personal-form-group" aria-labelledby="personal-shared-title"><div class="personal-form-group-heading"><h3 id="personal-shared-title">Shared with you</h3><span>{{ shared_forms|length }}</span></div><div class="personal-browse-grid">
+    {% for form in shared_forms %}<a class="surface personal-browse-card" href="{% url 'forms:public-form' form.organization.slug form.slug %}"><span class="personal-browse-org">{{ form.organization.name }} <span>·</span> {{ form.organization.get_business_type_display }}</span><strong>{{ form.title }}</strong>{% if form.purpose or form.description %}<p>{{ form.purpose|default:form.description|truncatechars:120 }}</p>{% endif %}<span class="personal-browse-open">Open form <b aria-hidden="true">↗</b></span></a>{% endfor %}
+  </div></section>
+  {% endif %}
+
+  {% if public_forms %}
+  <section class="personal-form-group" aria-labelledby="personal-public-title"><div class="personal-form-group-heading"><h3 id="personal-public-title">Public forms</h3><span>{{ public_forms|length }}</span></div><div class="personal-browse-grid">
+    {% for form in public_forms %}<a class="surface personal-browse-card" href="{% url 'forms:public-form' form.organization.slug form.slug %}"><span class="personal-browse-org">{{ form.organization.name }} <span>·</span> {{ form.organization.get_business_type_display }}</span><strong>{{ form.title }}</strong>{% if form.purpose or form.description %}<p>{{ form.purpose|default:form.description|truncatechars:120 }}</p>{% endif %}<span class="personal-browse-open">Open form <b aria-hidden="true">↗</b></span></a>{% endfor %}
+  </div></section>
+  {% endif %}
+
+  {% if not shared_forms and not public_forms %}<div class="surface personal-empty-state personal-form-empty"><span class="personal-empty-icon" aria-hidden="true">⌕</span><div><h3>No forms match those filters</h3><p>Try another search or choose a different category. Forms shared with your account and active public forms will appear here.</p></div></div>{% endif %}
+</section>
+{% endif %}
+{% else %}
+
+<section class="org-dashboard-grid" aria-label="Organizations">
+  {% for org in organizations %}
+  <article class="org-dashboard-card{% if org.is_archived %} is-archived{% endif %}" data-organization-card="{{ org.slug }}" data-card-url="{% url 'organizations:detail' org.slug %}">
+    <div class="org-dashboard-card-head"><span class="org-card-category">{{ org.category_display }}</span><div class="org-dashboard-head-actions"><button class="org-card-manage" type="button" data-open-manage="{{ org.slug }}" aria-label="Manage {{ org.name }}" title="Manage organization"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 1 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 1 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg><span>Manage</span></button><span class="org-role-indicator">{% if org.dashboard_is_owner %}Owner{% else %}{{ org.dashboard_role }} · Shared{% endif %}</span></div></div>
+    <div class="org-dashboard-card-main"><div class="org-card-identity"><span class="org-card-monogram" aria-hidden="true">{{ org.name|first|upper }}</span><div><div class="org-card-title-row"><h2><a class="org-card-title-link" href="{% url 'organizations:detail' org.slug %}">{{ org.name }}</a></h2></div><p>{{ org.description|default:"Your organization." }}</p></div></div>{% if org.dashboard_address %}<span class="org-address"><span aria-hidden="true">⌖</span>{{ org.dashboard_address }}</span>{% endif %}</div>
+    <div class="org-dashboard-metrics"><div><strong>{{ org.forms_count }}</strong><span>Forms</span></div><div><strong>{{ org.submissions_count }}</strong><span>Submissions</span></div><div><strong>{{ org.members_count }}</strong><span>Team members</span></div></div>
+    <div class="org-dashboard-card-footer"><span>Updated {{ org.updated_at|date:"d M Y" }}</span>{% if not org.is_archived %}<a class="org-card-ai-link" href="{% url 'chat:chat' %}?org={{ org.slug }}" aria-label="Open AI Hub for {{ org.name }}">AI Hub <span aria-hidden="true">↗</span></a>{% endif %}</div>
+  </article>
+  {% empty %}
+  <div class="surface empty-state org-empty-state"><p class="eyebrow">{% if showing_archived %}Archive{% else %}Get started{% endif %}</p><h2>{% if showing_archived %}No archived organizations{% elif ownership != 'all' %}No matching organizations{% else %}Create your first organization{% endif %}</h2><p class="muted">{% if showing_archived %}Archived organizations will appear here. You can restore them whenever you need.{% elif ownership == 'shared' %}Organizations where you are a member will appear here when their owner adds you.{% elif ownership == 'owned' %}Organizations you create will appear here.{% else %}Create an organization to start collecting responses.{% endif %}</p>{% if not showing_archived %}<button type="button" data-open-dialog="create-workspace-dialog">Create organization</button>{% endif %}</div>
+  {% endfor %}
+  {% if not showing_archived and ownership != 'shared' %}<button class="org-create-card" type="button" data-open-dialog="create-workspace-dialog"><span class="org-create-plus">＋</span><strong>Create another organization</strong><small>Set up a separate organization</small></button>{% endif %}
+</section>
+
+{% if shared_forms and ownership != 'owned' and not showing_archived %}
+<section class="shared-forms-panel surface" style="margin-top:24px">
+  <h2>Forms shared with you</h2><p class="muted">You can respond to these forms. Your organization and record access is managed separately.</p>
+  <div class="quiet-grid">{% for form in shared_forms %}<a class="org-card" href="{% url 'forms:public-form' form.organization.slug form.slug %}"><span class="pill">Specific accounts</span><h2>{{ form.title }}</h2><p class="muted">{{ form.organization.name }}</p><span class="muted">Open form →</span></a>{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if not showing_archived %}
+<dialog class="workspace-dialog create-workspace-dialog" id="create-workspace-dialog" {% if open_create_dialog %}data-open-on-load="true"{% endif %} aria-labelledby="create-workspace-title">
+  <div class="dialog-heading"><div><p class="eyebrow">Owner privileged</p><h2 id="create-workspace-title">Create organization</h2><p class="muted">Set up an organization, choose its industry, and add the details your team needs.</p></div><button type="button" class="icon-button" data-close-dialog aria-label="Close">×</button></div>
+  <form method="post" data-profile-form data-profile-initial="{}">{% csrf_token %}
+    <div class="field"><label for="org-name">Organization name <span aria-hidden="true">*</span></label><input id="org-name" name="name" required maxlength="200" placeholder="e.g. Bella Vista Restaurant"></div>
+    <div class="field"><label for="org-address">Location / address <span class="muted">Optional · city, branch or campus</span></label><input id="org-address" data-profile-address placeholder="e.g. Downtown, Jaipur"><span class="field-hint">Used as an organization detail for your team.</span></div>
+    <div class="field"><div class="profile-library-heading"><label for="org-type">Organization type <span aria-hidden="true">*</span></label><span class="field-hint">Industry or facility</span></div><div class="org-type-chips" role="group" aria-label="Choose organization type">{% for value,label in organization_types %}<button type="button" class="org-type-chip{% if forloop.first %} selected{% endif %}" data-org-type-choice="{{ value }}">{{ label }}</button>{% endfor %}<button type="button" class="org-type-chip" data-org-type-choice="custom">Custom</button></div><select id="org-type" name="business_type" data-profile-type class="org-type-select">{% for value,label in organization_types %}<option value="{{ value }}">{{ label }}</option>{% empty %}<option value="generic">General business</option><option value="restaurant">Restaurant</option><option value="cafe">Cafe</option><option value="hospitality">Hospitality</option><option value="restaurant_service">Restaurant service</option><option value="retail">Retail</option><option value="healthcare">Healthcare</option><option value="education">Education</option><option value="professional_services">Professional services</option>{% endfor %}</select><div class="field custom-category-field" data-custom-category-field hidden><label for="org-custom-category">Describe your organization category</label><input id="org-custom-category" data-custom-category placeholder="e.g. Community center, repair service, sports club" maxlength="100"></div></div>
+    <div class="field"><label for="org-description">Description <span class="muted">Optional</span></label><textarea id="org-description" name="description" placeholder="Brief summary of what this organization manages…"></textarea></div>
+    <input id="org-purpose" type="hidden" name="purpose" value="">
+    <section class="org-setup-section"><div class="profile-library-heading"><div><h3>Team members &amp; roles</h3><span class="field-hint">Add initial admins, managers, or members</span></div></div>
+      <div class="setup-owner-card"><span class="member-avatar">{{ request.user.get_full_name|default:request.user.username|first|upper }}</span><span><strong>{{ request.user.get_full_name|default:request.user.username }} <small>(You)</small></strong><small>{{ request.user.email|default:request.user.username }}</small></span><span class="pill">Owner &amp; Admin</span></div>
+      <div class="setup-invite-row"><input type="email" aria-label="Member email address" placeholder="Member email address"><input aria-label="Member name" placeholder="Name (optional)"><select aria-label="Member role"><option>Admin</option><option>Manager</option><option>Member</option></select><button type="button" class="button secondary" disabled>＋ Add member</button></div><p class="profile-library-note">Teammate invitations will be connected in the next workflow pass.</p>
+    </section>
+    <section class="org-setup-section"><div class="profile-library-heading"><div><h3>Initial form <span class="muted">Optional</span></h3><span class="field-hint">Choose a starting point for this organization</span></div></div><div class="initial-form-options"><button class="initial-form-option selected" type="button" aria-pressed="true"><strong>Start blank</strong><small>No forms created · recommended</small></button><button class="initial-form-option" type="button" aria-pressed="false"><strong>Client Intake &amp; Onboarding</strong><small>Starter template</small></button></div></section>
+    <section class="profile-library-panel"><div class="profile-library-heading"><div><p class="eyebrow">Organization details</p><h3>Additional details for this category</h3></div><span class="muted">Optional</span></div><div data-profile-fields class="profile-library-grid"></div><p class="profile-library-note">These details help complete your organization profile. You can leave any field blank.</p></section>
+    <input type="hidden" name="profile_data" value="{}">
+    <div class="dialog-actions"><button type="button" class="button secondary" data-close-dialog>Cancel</button><button type="submit">Create organization <span aria-hidden="true">↗</span></button></div>
+  </form>
+</dialog>
+{% endif %}
+
+{% for org in organizations %}{% include "organizations/partials/organization_settings_dialog.html" with manage_return_to="dashboard" %}{% endfor %}
+
+{{ profile_library|json_script:"organization-profile-library" }}
+{% endif %}
+{% endblock %}

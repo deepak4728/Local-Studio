@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ organization.name }} · OrgForms{% endblock %}
+{% block content %}
+<section class="workspace-banner workspace-action-banner organization-banner">
+  <div class="workspace-banner-copy">
+    <p class="eyebrow">{{ organization.category_display }}{% if organization.is_archived %} · Archived{% endif %}</p>
+    <h1>{{ organization.name }}</h1>
+    <p class="lede">{{ organization.description|default:"Create forms and collect responses for this organization." }}</p>
+  </div>
+  <div class="workspace-banner-actions">
+    <a class="button secondary" href="{% url 'chat:chat' %}?org={{ organization.slug }}">AI Hub</a>
+    <button class="button secondary" type="button" data-open-manage="{{ organization.slug }}">Manage organization</button>
+    {% if not organization.is_archived %}<a class="button" href="{% url 'forms:form-new' organization.slug %}" data-workflow-popup data-popup-title="Create form">＋ Create form</a>{% endif %}
+  </div>
+  <section class="workspace-banner-tools workspace-form-controls" aria-label="Form controls">
+    <label class="search-field"><span aria-hidden="true">⌕</span><input type="search" data-form-search placeholder="Search forms…" aria-label="Search forms"></label>
+    <div class="form-status-filter" role="group" aria-label="Filter forms by status">
+      <button type="button" data-form-status="" aria-pressed="true">All</button>
+      <button type="button" data-form-status="active" aria-pressed="false">Active</button>
+      <button type="button" data-form-status="draft" aria-pressed="false">Draft</button>
+      <button type="button" data-form-status="archived" aria-pressed="false">Archived</button>
+    </div>
+    <span class="record-count" data-form-count aria-live="polite">{{ forms|length }} form{{ forms|length|pluralize }}</span>
+  </section>
+</section>
+<div class="message" data-organization-notice role="status" aria-live="polite" hidden></div>
+
+{% if organization.is_archived %}<div class="message archived-notice">This organization is archived. Public forms are paused. Restore it from organization settings to continue editing.</div>{% endif %}
+
+<section class="form-list workspace-form-list" id="organization-forms" aria-label="Forms">
+  {% for form in forms %}
+    <article class="surface form-row" data-card-url="{% url 'forms:all-submissions' organization.slug %}?form={{ form.pk }}" data-form-status-value="{{ form.status }}" data-form-card data-search-text="{{ form.title }} {{ form.description }} {{ form.purpose }}">
+      <div class="form-row-head">
+        <span class="pill{% if form.status == 'active' %} active-pill{% endif %}">{{ form.get_status_display }}</span>
+        <button class="settings-icon-button form-settings-button" type="button" data-open-form-manage="{{ form.pk }}" aria-label="Manage {{ form.title }}" title="Manage form"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 1 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 1 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg></button>
+      </div>
+      <a class="workspace-form-link" href="{% url 'forms:all-submissions' organization.slug %}?form={{ form.pk }}">
+        <h2 title="{{ form.title }}">{{ form.title }}</h2>
+        {% if form.description and form.description != form.title %}<p>{{ form.description }}</p>{% endif %}
+        <span class="form-card-meta"><span class="form-audience">{{ form.get_visibility_display }}</span>{% if form.purpose and form.purpose != form.description %}<span class="form-purpose">{{ form.purpose }}</span>{% endif %}</span>
+        <span class="form-fields-preview" aria-label="Question preview">{% for field in form.schema.fields|slice:":3" %}<span>{{ field.label }}</span>{% empty %}<span>No questions added</span>{% endfor %}</span>
+        <span class="workspace-form-open">Submissions <span aria-hidden="true">↗</span></span>
+      </a>
+      <div class="form-row-footer"><span><strong>{{ form.schema.fields|length }}</strong> field{{ form.schema.fields|length|pluralize }}</span><span><strong>{{ form.response_total }}</strong> response{{ form.response_total|pluralize }}</span><span class="form-updated">{{ form.updated_at|date:"d M" }}</span></div>
+    </article>
+  {% empty %}
+    <div class="surface empty-state form-empty-state"><h2>No intake forms found</h2><p class="muted">Create an intake form to begin collecting data for this organization.</p>{% if not organization.is_archived %}<a class="button" href="{% url 'forms:form-new' organization.slug %}" data-workflow-popup data-popup-title="Create form">＋ New form</a>{% endif %}</div>
+  {% endfor %}
+  <div class="surface empty-state form-empty-state" data-form-no-results hidden><h2>No matching forms</h2><p class="muted">Try another search term or status.</p></div>
+</section>
+
+{% for form in forms %}
+<dialog class="workspace-dialog form-manage-dialog" id="form-manage-{{ form.pk }}" data-form-dialog="{{ form.pk }}" data-form-organization="{{ organization.slug }}" aria-labelledby="form-manage-title-{{ form.pk }}">
+  <div class="dialog-heading"><div><p class="eyebrow">Form settings · {{ form.get_status_display }}</p><h2 id="form-manage-title-{{ form.pk }}">{{ form.title }}</h2><p class="muted">Review this form, its responses, and its public link.</p></div><button type="button" class="icon-button" data-close-dialog aria-label="Close">×</button></div>
+  <div class="manage-tabs form-manage-tabs" role="tablist" aria-label="Form options">
+    <button class="manage-tab" type="button" role="tab" data-form-tab="details" aria-selected="true">Details</button>
+    <button class="manage-tab" type="button" role="tab" data-form-tab="edit" aria-selected="false">Edit</button>
+    <button class="manage-tab" type="button" role="tab" data-form-tab="responses" aria-selected="false">Responses</button>
+    <button class="manage-tab" type="button" role="tab" data-form-tab="access" aria-selected="false">Access</button>
+    <button class="manage-tab" type="button" role="tab" data-form-tab="ownership" aria-selected="false">Ownership</button>
+  </div>
+  <div class="manage-dialog-body">
+    <section class="manage-tab-panel" role="tabpanel" data-form-panel="details">
+      <div class="form-detail-summary"><div><span class="muted">Status</span><strong>{{ form.get_status_display }}</strong></div><div><span class="muted">All responses</span><strong>{{ form.response_total }}</strong></div><div><span class="muted">Last 30 days</span><strong>{{ form.response_30d }}</strong></div><div><span class="muted">Audience</span><strong data-form-audience>{{ form.get_visibility_display }}</strong></div></div>
+      <section class="form-detail-section"><p class="eyebrow">Form overview</p><p>{{ form.description|default:"No description added yet." }}</p>{% if form.purpose %}<p class="muted"><strong>Purpose</strong> · {{ form.purpose }}</p>{% endif %}</section>
+      <section class="form-detail-section"><div class="section-heading"><div><p class="eyebrow">Question set</p><h3>{{ form.schema.fields|length }} fields</h3></div><button class="button secondary" type="button" data-form-tab-jump="edit">Edit questions</button></div><div class="form-question-chips">{% for field in form.schema.fields|slice:":12" %}<span>{{ field.label }} <small>{{ field.type }}</small></span>{% empty %}<span class="muted">No questions added yet.</span>{% endfor %}{% if form.schema.fields|length > 12 %}<span class="muted">+{{ form.schema.fields|length|add:"-12" }} more</span>{% endif %}</div></section>
+      <section class="form-detail-facts"><div><span class="muted">Form ID</span><code>{{ form.pk }}</code></div><div><span class="muted">Public path</span><code>/org/{{ organization.slug }}/{{ form.slug }}/</code></div><div><span class="muted">Created</span><strong>{{ form.created_at|date:"M j, Y" }}</strong></div><div><span class="muted">Last updated</span><strong>{{ form.updated_at|date:"M j, Y · H:i" }}</strong></div><div><span class="muted">Form owner</span><strong data-form-owner>{{ form.created_by.email|default:form.created_by.username|default:"Organization admins" }}</strong></div></section>
+      {% if form.schema.restaurant_order %}<p class="form-order-indicator">▣ Menu ordering is enabled for this form.</p>{% endif %}
+      {% if form.status == 'active' and not organization.is_archived %}<div class="form-share-link"><a href="{{ form.public_url }}" target="_blank" rel="noopener">{{ form.public_url }}</a><button class="button secondary" type="button" data-copy-url="{{ form.public_url }}">Copy public link</button></div>{% endif %}
+    </section>
+    <section class="manage-tab-panel form-edit-panel" role="tabpanel" data-form-panel="edit" hidden>{% if form.can_edit_form %}{% if not organization.is_archived %}<p class="muted form-edit-intro">Edit this form here. Changes are saved from the editor below.</p><iframe class="form-manage-editor-frame" data-form-editor-frame data-src="{% url 'forms:form-edit' organization.slug form.pk %}?dialog=1" title="Edit {{ form.title }}" src="about:blank"></iframe>{% else %}<p class="muted">Restore this organization before editing its forms.</p>{% endif %}{% else %}<p class="muted">A form editor, manager, or admin can edit this form.</p>{% endif %}</section>
+    <section class="manage-tab-panel" role="tabpanel" data-form-panel="responses" hidden>
+      <div class="form-response-heading"><div><p class="eyebrow">Response activity</p><h3>{{ form.response_total }} total</h3><p class="muted">{{ form.response_30d }} received in the last 30 days{% if form.response_latest %} · latest {{ form.response_latest|date:"M j, Y · H:i" }}{% else %} · no responses yet{% endif %}</p></div><a class="button" href="{% url 'forms:all-submissions' organization.slug %}?form={{ form.pk }}">View stats &amp; responses ↗</a></div>
+      <div class="form-response-trend" role="img" aria-label="Daily responses over the last seven days">{% for point in form.response_trend %}<span title="{{ point.day|date:'M j' }}: {{ point.count }} response{{ point.count|pluralize }}" style="height:{{ point.height }}%"></span>{% endfor %}</div><div class="form-trend-labels"><span>6 days ago</span><span>Today</span></div><p class="muted">Daily responses over the last seven days. Open the filtered stats page for the 30-day trend and full response list.</p>
+      <div class="form-detail-summary form-response-stats"><div><span class="muted">Questions</span><strong>{{ form.schema.fields|length }}</strong></div><div><span class="muted">Audience</span><strong>{{ form.get_visibility_display }}</strong></div><div><span class="muted">Status</span><strong>{{ form.get_status_display }}</strong></div></div>
+    </section>
+    <section class="manage-tab-panel" role="tabpanel" data-form-panel="access" hidden>
+      <p class="muted">Choose who can submit this form. Response records remain available to organization admins and managers only.</p>
+      {% if membership.role == 'admin' or membership.role == 'manager' %}<form class="form-access-form" data-form-access data-api-url="{% url 'forms:api-form-detail' form.pk %}">{% csrf_token %}<div class="field"><label for="form-visibility-{{ form.pk }}">Submission audience</label><select id="form-visibility-{{ form.pk }}" name="visibility"><option value="public" {% if form.visibility == 'public' %}selected{% endif %}>Anyone with the link</option><option value="organization" {% if form.visibility == 'organization' %}selected{% endif %}>Organization members</option><option value="restricted" {% if form.visibility == 'restricted' %}selected{% endif %}>Selected accounts or groups</option></select></div><div class="field" data-access-accounts {% if form.visibility != 'restricted' %}hidden{% endif %}><label for="form-accounts-{{ form.pk }}">Accounts allowed to submit</label><textarea id="form-accounts-{{ form.pk }}" name="access_emails" rows="3" placeholder="person@example.com">{{ form.allowed_emails }}</textarea><p class="muted">Enter one account email per line.</p><label for="form-groups-{{ form.pk }}">Group aliases</label><textarea id="form-groups-{{ form.pk }}" name="access_groups" rows="2" placeholder="reviewers">{{ form.allowed_group_aliases }}</textarea><p class="muted">Use one alias per line. {% for access_group in organization_groups %}@{{ access_group.alias }}{% if not forloop.last %}, {% endif %}{% empty %}Create groups in People first.{% endfor %}</p></div><button type="submit">Save access settings</button><span class="muted" data-form-access-status role="status"></span></form>{% else %}<p class="muted">A manager or admin can change form access.</p>{% endif %}
+      {% if form.status == 'active' and not organization.is_archived %}<div class="form-share-link"><a href="{{ form.public_url }}" target="_blank" rel="noopener">{{ form.public_url }}</a><button class="button secondary" type="button" data-copy-url="{{ form.public_url }}">Copy public link</button></div>{% endif %}
+    </section>
+    <section class="manage-tab-panel" role="tabpanel" data-form-panel="ownership" hidden>
+      <section class="ownership-section"><div><p class="eyebrow">Edit access</p><h3>Who can edit this form?</h3><p class="muted">Form editors can change its questions and settings. This is separate from the Access tab, which controls who can fill out the form. Organization admins and managers always retain edit access.</p></div>
+        {% if can_manage_form_editors and not organization.is_archived %}<form class="form-editors-form" data-form-editors data-api-url="{% url 'forms:api-form-editors' form.pk %}">{% csrf_token %}<div class="form-editor-member-list">{% for member in members %}<label class="form-editor-member">{% if member.role == 'admin' or member.role == 'manager' %}<span class="editor-role-mark" aria-hidden="true">✓</span>{% else %}<input type="checkbox" name="editors" value="{{ member.user_id }}" {% if member.user_id in form.editor_user_ids %}checked{% endif %}>{% endif %}<span><strong>{{ member.user.email|default:member.user.username }}</strong><small>{% if member.role == 'admin' or member.role == 'manager' %}{{ member.get_role_display }} · always has edit access{% else %}Organization member{% endif %}</small></span></label>{% empty %}<p class="muted">Add organization members before assigning editors.</p>{% endfor %}</div><div class="inline-actions"><button type="submit">Save edit access</button><span class="muted" data-form-editors-status role="status"></span></div></form>{% else %}<p class="muted">{% if organization.is_archived %}Restore this organization before changing form editors.{% else %}Only an organization manager or admin can change the editor list.{% endif %}</p>{% endif %}
+      </section>
+      <section class="ownership-section"><div><p class="eyebrow">Owner &amp; transfer</p><h3>Move this form or change its owner</h3><p class="muted">A move changes the organization that manages this form and carries its response history with it.</p></div>
+        {% if can_transfer_forms and not organization.is_archived %}<form class="form-transfer-form" data-form-transfer data-api-url="{% url 'forms:api-form-transfer' form.pk %}">{% csrf_token %}<div class="field"><label for="transfer-org-{{ form.pk }}">Destination organization</label><select id="transfer-org-{{ form.pk }}" name="organization" data-transfer-org>{% for transfer_org in manageable_organizations %}<option value="{{ transfer_org.slug }}" {% if transfer_org.pk == organization.pk %}selected{% endif %}>{{ transfer_org.name }}</option>{% endfor %}</select></div><div class="field"><label for="transfer-owner-{{ form.pk }}">Form owner</label><select id="transfer-owner-{{ form.pk }}" name="owner_membership" data-transfer-owner>{% for transfer_org in manageable_organizations %}{% for transfer_member in transfer_org.memberships.all %}{% if transfer_member.role == 'admin' or transfer_member.role == 'manager' %}<option value="{{ transfer_member.pk }}" data-organization="{{ transfer_org.slug }}" {% if transfer_org.pk == organization.pk and transfer_member.user_id == form.created_by_id %}selected{% endif %}>{{ transfer_member.user.email|default:transfer_member.user.username }} · {{ transfer_member.get_role_display }}</option>{% endif %}{% endfor %}{% endfor %}</select></div><button type="submit" class="secondary" data-transfer-submit>Save owner &amp; move</button><span class="muted" data-form-transfer-status role="status"></span></form>{% else %}<p class="muted">Only an organization admin can change the form owner or transfer it to another organization.</p>{% endif %}
+      </section>
+    </section>
+  </div>
+</dialog>
+{% endfor %}
+<dialog class="workspace-dialog form-workflow-dialog" id="form-workflow-dialog" aria-labelledby="form-workflow-title">
+  <header class="dialog-heading"><div><p class="eyebrow">{{ organization.name }}</p><h2 id="form-workflow-title">Form</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Close form popup">×</button></header>
+  <p class="popup-loading" id="form-workflow-loading" role="status">Loading…</p>
+  <iframe id="form-workflow-frame" title="Form" src="about:blank" hidden></iframe>
+</dialog>
+{% include "organizations/partials/organization_settings_dialog.html" with org=organization manage_return_to="organization" %}
+{{ profile_library|json_script:"organization-profile-library" }}
+{% endblock %}

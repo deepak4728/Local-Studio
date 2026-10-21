@@ -1,0 +1,6 @@
+{% extends "embedded.html" %}
+{% block title %}Form saved · OrgForms{% endblock %}
+{% block content %}
+<div class="surface empty-state"><h2>Form saved</h2><p>Your form and sharing settings have been saved.</p><a class="button" href="{% url 'organizations:detail' organization.slug %}" target="_top">Return to forms</a></div>
+<script>window.parent.postMessage({type:'orgforms:saved'},location.origin);</script>
+{% endblock %}

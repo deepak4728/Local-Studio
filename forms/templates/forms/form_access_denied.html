@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Form access required · {{ organization.name }}{% endblock %}
+{% block content %}
+<section class="surface access-denied-card">
+  <p class="eyebrow">{{ organization.name }} · Form access</p>
+  <h1>This form is limited to approved accounts</h1>
+  <p class="lede">Your signed-in account does not have permission to submit <strong>{{ form.title }}</strong>.</p>
+  <p class="muted">Ask an organization admin to add your account to the form’s access list, or switch to an account that already has access. Access to a form does not grant access to the organization’s submissions.</p>
+  <div class="inline-actions"><a class="button secondary" href="{% url 'home' %}">Back to OrgForms</a><form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out to switch account</button></form></div>
+</section>
+{% endblock %}

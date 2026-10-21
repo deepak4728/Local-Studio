@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+{% block title %}OrgForms · Forms for local organizations{% endblock %}
+{% block head %}
+<style>
+  .product-landing{--landing-border:var(--line);--landing-card:var(--surface);width:min(1120px,100%);margin:0 auto}
+  .product-landing button,.product-landing a{font:inherit}
+  .product-landing button{color:inherit}
+  .landing-hero{max-width:820px;margin:66px auto 72px;text-align:center}
+  .landing-kicker,.section-kicker,.mini-label{color:var(--muted);font:500 10px/1.4 'DM Mono',ui-monospace,monospace;letter-spacing:.09em;text-transform:uppercase}
+  .landing-kicker{margin:0 0 18px}
+  .landing-hero h1{font-size:clamp(42px,7vw,76px);line-height:1.02;letter-spacing:-.075em;font-weight:550}
+  .landing-hero h1 span{color:var(--muted)}
+  .landing-lede{max-width:680px;margin:20px auto 0;color:var(--muted);font-size:15px;line-height:1.75}
+  .landing-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:25px}
+  .landing-button{min-height:42px;padding:0 17px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid var(--line-strong);border-radius:9px;background:var(--accent);color:var(--accent-ink)!important;text-decoration:none;font-size:12px;font-weight:600;transition:transform .16s ease,opacity .16s ease}
+  .landing-button:hover{transform:translateY(-1px);opacity:.9}
+  .landing-button.secondary{background:transparent;color:var(--ink)!important}
+  .landing-proof{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin:28px 0 0;color:var(--muted);font-size:10px}
+  .landing-proof span:before{content:'•';margin-right:8px;color:var(--success)}
+  .mvp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .mvp-card{min-height:188px;padding:18px;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
+  .mvp-index{color:var(--muted);font:10px 'DM Mono',ui-monospace,monospace;letter-spacing:.08em}
+  .mvp-card h3{margin:20px 0 8px;font-size:16px;letter-spacing:-.035em}
+  .mvp-card p{margin:0;color:var(--muted);font-size:11px;line-height:1.7}
+  .product-landing{counter-reset:landing-page}
+  .landing-section{position:relative;isolation:isolate;counter-increment:landing-page;margin:42px 0;padding:24px 36px 32px;scroll-margin-top:116px;transform-style:preserve-3d;backface-visibility:hidden;transition:opacity .62s ease,transform .78s cubic-bezier(.16,.78,.22,1),filter .62s ease}
+  .landing-section::before{content:"";position:absolute;z-index:-1;inset:-5px 12px -12px;border:1px solid color-mix(in srgb,var(--line-strong) 85%,transparent);border-radius:22px;background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 68%,transparent),color-mix(in srgb,var(--surface-soft) 42%,transparent));box-shadow:0 22px 58px color-mix(in srgb,var(--ink) 12%,transparent),inset 0 1px 0 color-mix(in srgb,white 8%,transparent);opacity:0;pointer-events:none;transform:translateY(22px) rotateX(5deg) scale(.965);transform-origin:50% 0;transition:opacity .48s ease,transform .72s cubic-bezier(.16,.78,.22,1)}
+  .landing-section::after{content:"PAGE " counter(landing-page,decimal-leading-zero);position:absolute;z-index:1;right:27px;top:-18px;padding:5px 9px;border:1px solid var(--line-strong);border-radius:999px;background:var(--surface);box-shadow:0 7px 20px color-mix(in srgb,var(--ink) 10%,transparent);color:var(--muted);font:9px/1.2 'DM Mono',ui-monospace,monospace;letter-spacing:.08em;opacity:0;pointer-events:none;transform:translateY(7px) rotateX(-12deg);transition:opacity .3s ease,transform .5s cubic-bezier(.16,.78,.22,1)}
+  .landing-section.landing-reveal.is-active::before{opacity:.72;transform:translateY(0) rotateX(0) scale(1)}
+  .landing-section.landing-reveal.is-active::after{opacity:.9;transform:translateY(0) rotateX(0)}
+  .landing-section.landing-reveal.is-passed{opacity:.9;filter:none;transform:none}
+  .landing-section.landing-reveal.is-passed::before{opacity:.58;transform:translateY(-9px) rotateX(-3deg) scale(.985)}
+  .landing-section.landing-reveal.is-passed::after{opacity:.48;transform:translateY(-13px) rotateX(-12deg)}
+  .landing-section.landing-reveal.is-active{opacity:1;filter:none;transform:none}
+  .landing-section-nav{position:sticky;top:68px;z-index:4;display:flex;width:max-content;max-width:100%;gap:6px;overflow:auto;padding:8px;margin:0 auto 24px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--canvas) 88%,transparent);backdrop-filter:blur(12px);scrollbar-width:none;isolation:isolate}
+  .landing-section-nav::-webkit-scrollbar{display:none}
+  @media(min-width:761px){.landing-section-nav{justify-content:center}}
+  .landing-section-nav a{position:relative;z-index:1;flex:0 0 auto;padding:7px 11px;border-radius:999px;color:var(--muted);font-size:10px;text-decoration:none;transition:color .2s}
+  .landing-section-nav a:hover,.landing-section-nav a:focus-visible,.landing-section-nav a[aria-current="location"]{color:var(--ink)}
+  .landing-nav-indicator{position:absolute;z-index:0;top:0;left:0;width:0;height:29px;border:1px solid color-mix(in srgb,var(--accent-2) 22%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 48%,var(--surface));box-shadow:0 2px 8px color-mix(in srgb,var(--ink) 8%,transparent);pointer-events:none;transform:translate3d(0,0,0);transition:transform .32s cubic-bezier(.2,.8,.2,1),width .32s cubic-bezier(.2,.8,.2,1)}
+  @media(prefers-reduced-motion:reduce){.landing-nav-indicator{transition:none}}
+  .workflow-motion{padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+  .workflow-track{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+  .workflow-step{min-height:112px;padding:15px;border:1px solid var(--line);border-radius:10px;background:var(--canvas);text-align:left;cursor:pointer;transition:transform .2s,border-color .2s,background .2s}
+  .workflow-step:hover{transform:translateY(-3px)}.workflow-step[aria-current="step"]{border-color:var(--accent-2);background:var(--surface-soft);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-2) 16%,transparent)}
+  .workflow-step b{display:block;margin:8px 0 5px;font-size:13px}.workflow-step small{color:var(--muted);font-size:10px;line-height:1.5}
+  .workflow-motion-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px;color:var(--muted);font-size:10px}
+  .workflow-pulse{height:3px;margin-top:15px;border-radius:5px;background:var(--line);overflow:hidden}.workflow-pulse span{display:block;width:25%;height:100%;background:var(--accent-2);transition:transform .35s ease}
+  .landing-reveal{opacity:0;transform:perspective(1200px) translateY(62px) rotateX(11deg) rotateY(1deg) scale(.94);transform-origin:50% 0;transition:opacity .7s ease,transform .85s cubic-bezier(.16,.78,.22,1),filter .62s ease}.landing-reveal.is-in-view{opacity:1;transform:perspective(1200px) translateY(0) rotateX(0) rotateY(0) scale(1)}
+  .landing-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin-bottom:20px;min-width:0}
+  .landing-section-head>div{flex:1 1 0;min-width:0}
+  .landing-section-head h2{max-width:100%;margin:7px 0 0;font-size:clamp(25px,4vw,38px);line-height:1.1;letter-spacing:-.055em;font-weight:550;overflow-wrap:anywhere}
+  .landing-section-head p{flex:0 1 420px;min-width:0;max-width:420px;margin:0;color:var(--muted);font-size:12px;line-height:1.65;overflow-wrap:anywhere}
+  /* Let section content and cards shrink with their grid columns; long pasted values must wrap inside the box. */
+  .landing-section>*{min-width:0}
+  .product-landing :where(.mvp-card,.workflow-step,.demo-copy,.demo-note,.blueprint-card,.architecture-card,.architecture-item,.faq-list details,.landing-endcap,.landing-footer-main){min-width:0}
+  .product-landing :where(.mvp-card,.workflow-step,.demo-copy,.demo-note,.blueprint-card,.architecture-card,.architecture-item,.faq-list details,.landing-endcap,.landing-footer-main) :where(h2,h3,h4,p,span,b,strong,small,a,summary,code){overflow-wrap:anywhere}
+  .demo-shell{display:grid;grid-template-columns:minmax(220px,.72fr) minmax(0,1.28fr);gap:20px;padding:20px;border:1px solid var(--landing-border);border-radius:15px;background:var(--landing-card)}
+  .demo-copy{padding:8px 5px}
+  .demo-copy h3{margin:10px 0;font-size:22px;letter-spacing:-.045em}
+  .demo-copy p{margin:0;color:var(--muted);font-size:12px;line-height:1.7}
+  .demo-note{display:flex;gap:9px;align-items:flex-start;margin-top:18px;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--surface-soft);color:var(--muted);font-size:10px;line-height:1.55}
+  .demo-note b{color:var(--success)}
+  .demo-app{overflow:hidden;border:1px solid var(--line);border-radius:11px;background:var(--canvas)}
+  .demo-bar{height:42px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);font-size:10px}
+  .demo-dots{display:flex;gap:5px}.demo-dots i{width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
+  .demo-status{color:var(--success);font:10px 'DM Mono',monospace}
+  .demo-inner{padding:17px}
+  .demo-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:15px}
+  .demo-toolbar strong{font-size:12px}
+  .demo-tabs,.demo-presets,.filter-tabs{display:flex;flex-wrap:wrap;gap:5px}
+  .landing-chip,.demo-tab{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);font-size:10px;cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,transform .18s ease}
+  .landing-chip:hover,.demo-tab:hover{transform:translateY(-1px);background:var(--surface-soft);color:var(--ink);border-color:var(--line-strong)}
+  .landing-chip[aria-pressed="true"],.demo-tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 3px 10px color-mix(in srgb,var(--ink) 13%,transparent)}
+  .demo-form{max-width:520px;margin:0 auto;padding:19px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+  .demo-form h4{margin:0 0 5px;font-size:17px;letter-spacing:-.04em}
+  .demo-form>p{margin:0 0 15px;color:var(--muted);font-size:10px;line-height:1.5}
+  .demo-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .demo-field label{display:block;margin-bottom:5px;color:var(--muted);font-size:9px}
+  .demo-field input,.demo-field select,.demo-field textarea{width:100%;min-height:33px;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--canvas);color:var(--ink);font-size:10px}
+  .demo-field textarea{min-height:55px;resize:vertical}
+  .demo-field.wide{grid-column:1/-1}
+  .demo-submit{margin-top:12px;padding:8px 11px;border:0;border-radius:7px;background:var(--accent);color:var(--accent-ink)!important;font-size:10px;font-weight:600;cursor:pointer}
+  .schema-view{display:none;max-width:520px;min-height:250px;margin:0 auto;padding:18px;border:1px solid var(--line);border-radius:9px;background:var(--surface-soft);color:var(--ink);font:10px/1.7 'DM Mono',ui-monospace,monospace;white-space:pre-wrap}
+  .schema-view.is-visible{display:block}.demo-form.is-hidden{display:none}
+  .role-panel{overflow:hidden;border:1px solid var(--line);border-radius:13px;background:var(--surface)}
+  .role-intro{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid var(--line)}
+  .role-intro h3{margin:0;font-size:16px}.role-intro p{margin:5px 0 0;color:var(--muted);font-size:11px}
+  .role-table-wrap{overflow-x:auto}.role-table{width:100%;border-collapse:collapse;text-align:left;min-width:650px}
+  .role-table th,.role-table td{padding:12px 16px;border-bottom:1px solid var(--line);font-size:10px}
+  .role-table th{color:var(--muted);font-weight:500}.role-table td:not(:first-child),.role-table th:not(:first-child){text-align:center;width:100px}
+  .role-table tbody tr:last-child td{border-bottom:0}.role-table td:first-child strong{display:block;font-size:10px;font-weight:600}.role-table td:first-child small{display:block;margin-top:4px;color:var(--muted);font-size:9px}
+  .permission-yes{color:var(--success);font-size:14px}.permission-no{color:var(--line-strong)}
+  .role-table [data-role-col].is-selected{background:color-mix(in srgb,var(--surface-soft) 65%,transparent)}
+  .role-foot{padding:12px 18px;border-top:1px solid var(--line);color:var(--muted);font-size:9px}
+  .blueprint-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .filter-tabs[aria-label="Filter sample blueprints"]{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--surface) 76%,transparent)}
+  .filter-tabs[aria-label="Filter sample blueprints"] .landing-chip{min-height:32px;padding:6px 12px;border-color:transparent;background:transparent}
+  .filter-tabs[aria-label="Filter sample blueprints"] .landing-chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .blueprint-toolbar>.mini-label{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface-soft);white-space:nowrap}
+  .blueprint-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 12px;padding-top:5px;perspective:1000px}
+  .blueprint-card{position:relative;isolation:isolate;min-height:205px;margin-top:5px;padding:16px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 7px 18px color-mix(in srgb,var(--ink) 5%,transparent);transition:transform .22s cubic-bezier(.2,.75,.25,1),border-color .18s ease,box-shadow .18s ease}
+  .blueprint-card::before{content:"";position:absolute;z-index:0;top:-7px;left:13px;width:62px;height:10px;border:1px solid var(--line);border-bottom:0;border-radius:7px 7px 0 0;background:var(--surface-soft);pointer-events:none;transition:transform .22s ease}
+  .blueprint-card::after{content:"";position:absolute;z-index:0;inset:4px -4px -4px 4px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--surface-soft) 70%,transparent);pointer-events:none;transition:transform .22s ease}
+  .blueprint-card>*{position:relative;z-index:1}
+  .blueprint-card:hover{transform:translateY(-4px) rotateX(1deg);border-color:var(--line-strong);box-shadow:0 14px 28px color-mix(in srgb,var(--ink) 11%,transparent)}
+  .blueprint-card:hover::before{transform:translateY(-2px)}
+  .blueprint-card:hover::after{transform:translate(2px,2px)}
+  .blueprint-card.is-swapping{animation:blueprint-file-swap .38s cubic-bezier(.2,.75,.25,1) both;animation-delay:calc(var(--swap-index,0) * 45ms)}
+  @keyframes blueprint-file-swap{from{opacity:.35;transform:translateY(12px) rotateX(-3deg) scale(.985)}to{opacity:1;transform:translateY(0) rotateX(0) scale(1)}}
+  .blueprint-meta{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:9px}
+  .blueprint-card h3{margin:18px 0 7px;font-size:14px;letter-spacing:-.025em}
+  .blueprint-card p{margin:0;color:var(--muted);font-size:10px;line-height:1.6}
+  .blueprint-card button{width:fit-content;margin-top:auto;padding:8px 0 0;border:0;background:none;color:var(--ink);font-size:10px;font-weight:600;cursor:pointer}
+  .blueprint-card button span{margin-left:5px;color:var(--muted)}
+  .blueprint-card[hidden]{display:none}
+  .ledger{overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+  .ledger-head{padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+  .ledger-head h3{margin:0;font-size:14px}.ledger-head p{margin:4px 0 0;color:var(--muted);font-size:10px}
+  .ledger-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .ledger-search{width:180px;min-height:31px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--canvas);color:var(--ink);font-size:10px}
+  .export-button{padding:7px 10px;border:1px solid var(--line-strong);border-radius:7px;background:transparent;font-size:10px;cursor:pointer}
+  .ledger-table-wrap{overflow-x:auto}.ledger-table{width:100%;min-width:700px;border-collapse:collapse;text-align:left}
+  .ledger-table th,.ledger-table td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:10px;white-space:nowrap}
+  .ledger-table th{color:var(--muted);font-weight:500}.ledger-table tbody tr:last-child td{border-bottom:0}
+  .ledger-table td:nth-child(3){color:var(--muted)}
+  .status-pill{padding:4px 7px;border:1px solid var(--line);border-radius:99px;color:var(--muted);font-size:9px}
+  .status-pill.reviewed{color:var(--success)}.status-pill.pending{color:#c19b63}
+  .ledger-foot{padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:9px}
+  /* Keep the landing page's interactive controls aligned with the app button system. */
+  .product-landing .demo-tab,.product-landing .landing-chip,.product-landing .export-button,.product-landing .blueprint-card button{min-height:34px;padding:7px 12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font-size:11px;font-weight:550;line-height:1.2;white-space:nowrap;box-shadow:none;transition:transform .16s ease,border-color .16s ease,background .16s ease,color .16s ease,box-shadow .16s ease}
+  .product-landing .demo-tab:hover,.product-landing .landing-chip:hover,.product-landing .export-button:hover,.product-landing .blueprint-card button:hover{transform:translateY(-1px);border-color:var(--line-strong);background:var(--surface-soft);color:var(--ink)}
+  .product-landing .demo-tab[aria-pressed="true"],.product-landing .landing-chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink);box-shadow:0 2px 7px color-mix(in srgb,var(--ink) 12%,transparent)}
+  .role-intro .demo-tabs{flex:0 0 auto;gap:4px;padding:4px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--surface-soft) 78%,transparent)}
+  .role-intro .role-select{min-width:88px}
+  .filter-tabs[aria-label="Filter sample submissions"]{gap:3px;padding:3px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--surface-soft) 78%,transparent)}
+  .filter-tabs[aria-label="Filter sample submissions"] .landing-chip{min-height:30px;padding:6px 10px;border-color:transparent;background:transparent}
+  .filter-tabs[aria-label="Filter sample submissions"] .landing-chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+  .product-landing .blueprint-card button{width:fit-content;min-width:122px;margin-top:auto;padding-inline:12px;border-color:var(--line);background:var(--surface-soft);font-size:10px}
+  .product-landing .blueprint-card button span{margin-left:1px;color:var(--accent-2);font-size:12px}
+  .product-landing .demo-presets .landing-chip{min-height:32px}
+  .product-landing .export-button{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .product-landing .export-button:hover{background:color-mix(in srgb,var(--accent) 86%,var(--accent-2));border-color:var(--accent);color:var(--accent-ink)}
+  .architecture-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:12px}
+  .architecture-card{padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+  .architecture-card h3{margin:9px 0;font-size:20px;letter-spacing:-.045em}
+  .architecture-card>p{max-width:600px;margin:0;color:var(--muted);font-size:11px;line-height:1.7}
+  .architecture-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:19px}
+  .architecture-item{padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--canvas)}
+  .architecture-item b{display:block;font-size:10px}.architecture-item span{display:block;margin-top:5px;color:var(--muted);font-size:9px;line-height:1.5}
+  .architecture-code{margin-top:17px;padding:12px;border-radius:8px;background:var(--surface-soft);color:var(--muted);font:9px/1.7 'DM Mono',ui-monospace}
+  .faq-list{display:grid;gap:7px}
+  .faq-list details{padding:0 14px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+  .faq-list summary{padding:13px 0;display:flex;justify-content:space-between;gap:12px;list-style:none;cursor:pointer;font-size:11px;font-weight:550}
+  .faq-list summary::-webkit-details-marker{display:none}.faq-list summary:after{content:'+';color:var(--muted);font-size:15px}.faq-list details[open] summary:after{content:'−'}
+  .faq-list details p{max-width:850px;margin:0;padding:0 20px 14px 0;color:var(--muted);font-size:10px;line-height:1.7}
+  .landing-endcap{padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:center}
+  .landing-endcap h2{margin:8px 0;font-size:clamp(27px,4vw,40px);letter-spacing:-.055em}
+  .landing-endcap p{max-width:600px;margin:0 auto;color:var(--muted);font-size:12px;line-height:1.65}
+  .landing-endcap .landing-actions{margin-top:18px}
+  .landing-footer{display:block;margin-top:64px;border-top:1px solid var(--line);color:var(--muted)}
+  .landing-footer-main{padding:28px 0;display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(3,minmax(120px,1fr));gap:28px}
+  .landing-footer-brand{max-width:260px}.landing-footer-brand strong{display:block;color:var(--ink);font-size:14px;letter-spacing:-.03em}.landing-footer-brand p{margin:8px 0 0;font-size:11px;line-height:1.65}
+  .landing-footer-group h2{margin:2px 0 10px;color:var(--ink);font-size:10px;font-weight:650}
+  .landing-footer-group ul{display:grid;gap:8px;padding:0;margin:0;list-style:none}
+  .landing-footer-group a{color:var(--muted);font-size:10px;text-decoration:none}.landing-footer-group a:hover,.landing-footer-group a:focus-visible{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+  .landing-footer-bottom{min-height:42px;padding:11px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);font-size:9px}
+  .landing-toast{position:fixed;z-index:40;right:20px;bottom:20px;max-width:min(360px,calc(100vw - 40px));padding:11px 14px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface);box-shadow:0 10px 35px #0002;color:var(--ink);font-size:11px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+  .landing-toast.is-visible{opacity:1;transform:translateY(0)}
+  @media(max-width:760px){.landing-hero{margin:42px auto 54px}.landing-section{margin:34px 0;padding:20px 28px 26px;scroll-margin-top:106px}.landing-section-head{align-items:flex-start;flex-direction:column;gap:8px}.landing-section-head>div,.landing-section-head p{width:100%;flex:0 1 auto;max-width:100%}.demo-shell{grid-template-columns:1fr;padding:14px}.demo-copy{padding:4px}.blueprint-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mvp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.architecture-grid{grid-template-columns:1fr}.role-intro,.blueprint-toolbar,.ledger-head{align-items:flex-start;flex-direction:column}.blueprint-toolbar{width:100%}.filter-tabs[aria-label="Filter sample blueprints"]{max-width:100%}.architecture-list{grid-template-columns:1fr 1fr}.workflow-track{grid-template-columns:repeat(2,minmax(0,1fr))}.workflow-motion{padding:14px}.landing-footer-main{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}}
+  @media(max-width:520px){.landing-hero h1{font-size:42px}.landing-lede{font-size:13px}.landing-proof{gap:9px 14px}.demo-toolbar{align-items:flex-start;flex-direction:column}.demo-fields{grid-template-columns:1fr}.demo-field.wide{grid-column:auto}.blueprint-grid,.mvp-grid{grid-template-columns:1fr}.mvp-card{min-height:0}.mvp-card h3{margin-top:12px}.blueprint-card{min-height:170px}.ledger-search{width:100%}.ledger-actions{width:100%}.workflow-track{grid-template-columns:1fr}.workflow-step{min-height:0}.workflow-motion-foot{align-items:flex-start;flex-direction:column}.landing-footer-main{grid-template-columns:1fr 1fr;gap:20px 14px}.landing-footer-brand{grid-column:1/-1}.landing-footer-bottom{align-items:flex-start;flex-direction:column;gap:5px}}
+  @media(prefers-reduced-motion:reduce){.landing-reveal,.workflow-step,.workflow-pulse span,.landing-chip,.demo-tab,.blueprint-card,.blueprint-card::before,.blueprint-card::after,.landing-section,.landing-section::before,.landing-section::after{transition:none}.landing-reveal,.landing-section.landing-reveal.is-passed,.landing-section.landing-reveal.is-active{opacity:1;filter:none;transform:none}.landing-section::before,.landing-section::after{display:none}.blueprint-card.is-swapping{animation:none}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="product-landing">
+  <section class="landing-hero">
+    <p class="landing-kicker">The OrgForms MVP · Organization-owned ordering</p>
+    <h1>Less typing.<br><span>More thoughtful service.</span></h1>
+    <p class="landing-lede">A local-first ordering system for cafes and restaurants: AI that handles routine inputs on-device, structured workflows for complex tasks, and ordering that stays available across your organization’s network.</p>
+    <div class="landing-actions"><a class="landing-button" href="{% url 'accounts:signup' %}">Create your organization <span aria-hidden="true">↗</span></a><a class="landing-button secondary" href="#mvp">Explore the MVP <span aria-hidden="true">↓</span></a></div>
+    <div class="landing-proof"><span>On-device Qwen 3.5 4B</span><span>Voice and one-box input</span><span>Local Wi-Fi ordering</span><span>QR and barcode flows</span></div>
+  </section>
+
+  <nav class="landing-section-nav" aria-label="Explore OrgForms"><span class="landing-nav-indicator" aria-hidden="true"></span><a href="#mvp">MVP</a><a href="#live-demo">Form sandbox</a><a href="#roles-heading">Team access</a><a href="#blueprints-heading">Blueprints</a><a href="#ledger-heading">Submissions</a><a href="#architecture-heading">AI workflow</a></nav>
+
+  <section class="landing-section" id="mvp" aria-labelledby="mvp-heading">
+    <div class="landing-section-head"><div><p class="section-kicker">The MVP · Six product building blocks</p><h2 id="mvp-heading">AI and ordering designed around the organization.</h2></div><p>Keep everyday work fast and local. Use carefully structured models and network options for the tasks that need them.</p></div>
+    <div class="mvp-grid">
+      <article class="mvp-card"><span class="mvp-index">01 · LOCAL INFERENCE</span><h3>Fast reasoning on-device</h3><p>Run Qwen 3.5 4B locally for routine questions, basic reasoning, and analytics, keeping common work responsive and cost-efficient.</p></article>
+      <article class="mvp-card"><span class="mvp-index">02 · FRONTIER ROUTING</span><h3>Cloud models for heavier jobs</h3><p>Connect provider APIs for high-complexity or scheduled tasks, so larger model calls are used where they add value.</p></article>
+      <article class="mvp-card"><span class="mvp-index">03 · SYSTEM 1</span><h3>Say it once; classify the input</h3><p>Accept a voice command or a single-box message, map its values to the form schema, and attach a confidence probability to each field.</p></article>
+      <article class="mvp-card"><span class="mvp-index">04 · SYSTEM 2</span><h3>Create with strict schemas</h3><p>Use a stronger structured workflow for organization and form creation, producing schema-following output that can be reviewed before use.</p></article>
+      <article class="mvp-card"><span class="mvp-index">05 · ORGANIZATION DEPLOYMENT</span><h3>Run on the organization’s network</h3><p>Deploy for each organization over its Wi-Fi. Keep ordering on the local network during internet outages, or expose the service publicly through configured port forwarding.</p></article>
+      <article class="mvp-card"><span class="mvp-index">06 · QR + BARCODE</span><h3>Scan into a simpler order</h3><p>Use QR codes and barcodes to connect guests to menus, items, or tables with less manual entry and more attention on the cafe experience.</p></article>
+    </div>
+  </section>
+
+  <section class="landing-section" id="workflow-motion" aria-labelledby="workflow-motion-title">
+    <div class="landing-section-head"><div><p class="section-kicker">How the pieces work together</p><h2 id="workflow-motion-title">A request moves from capture to action.</h2></div><p>Follow a submission through the OrgForms workflow. Select a stage or let the walkthrough play.</p></div>
+    <div class="workflow-motion" data-workflow-motion>
+      <div class="workflow-track" role="group" aria-label="OrgForms workflow stages">
+        <button class="workflow-step" type="button" data-workflow-step="0" aria-current="step"><span class="mini-label">01 · Capture</span><b>Collect the request</b><small>People submit a focused form or speak a short instruction.</small></button>
+        <button class="workflow-step" type="button" data-workflow-step="1"><span class="mini-label">02 · Structure</span><b>Map details to fields</b><small>System 1 classifies known inputs; System 2 drafts strict schemas.</small></button>
+        <button class="workflow-step" type="button" data-workflow-step="2"><span class="mini-label">03 · Review</span><b>Check the record</b><small>Teams filter, approve, and export submissions with context.</small></button>
+        <button class="workflow-step" type="button" data-workflow-step="3"><span class="mini-label">04 · Improve</span><b>Reuse trusted details</b><small>Saved preferences and organization sources support the next request.</small></button>
+      </div>
+      <div class="workflow-pulse" aria-hidden="true"><span data-workflow-progress></span></div>
+      <div class="workflow-motion-foot"><span data-workflow-caption>Capture a request once and keep the original submission available for review.</span><button class="button secondary" type="button" data-workflow-play aria-pressed="true">Pause walkthrough</button></div>
+    </div>
+  </section>
+
+  <section class="landing-section" id="live-demo" aria-labelledby="demo-heading">
+    <div class="landing-section-head"><div><p class="section-kicker">Interactive feature 01 · Form builder</p><h2 id="demo-heading">Try a form before you build one.</h2></div><p>Explore a sample intake form, switch to its typed structure, or choose a prompt to see how a first draft can take shape.</p></div>
+    <div class="demo-shell">
+      <div class="demo-copy"><span class="mini-label">Live form playground</span><h3>Start with a useful first draft.</h3><p>Use the sandbox to preview a typical intake flow. Its sample fields and entries stay in this page and are not saved to an account.</p><div class="demo-note"><b aria-hidden="true">●</b><span>Safe to explore · No database writes or external calls</span></div></div>
+      <div class="demo-app">
+        <div class="demo-bar"><span class="demo-dots" aria-hidden="true"><i></i><i></i><i></i></span><strong>Interactive sandbox</strong><span class="demo-status">PREVIEW</span></div>
+        <div class="demo-inner">
+          <div class="demo-toolbar"><strong id="demo-title">Client onboarding</strong><div class="demo-tabs"><button class="demo-tab" type="button" data-demo-view="form" aria-pressed="true">Fill form</button><button class="demo-tab" type="button" data-demo-view="schema" aria-pressed="false">View schema</button></div></div>
+          <div class="demo-presets" aria-label="Sample form prompts"><button class="landing-chip" type="button" data-preset="client">Client onboarding</button><button class="landing-chip" type="button" data-preset="feedback">Customer feedback</button><button class="landing-chip" type="button" data-preset="incident">Incident report</button></div>
+          <form class="demo-form" id="sample-form">
+            <h4 id="sample-heading">Client onboarding & project scope</h4><p id="sample-description">Capture company details, project goals, and a target launch date.</p>
+            <div class="demo-fields" id="sample-fields">
+              <div class="demo-field"><label for="sample-name">Contact name</label><input id="sample-name" placeholder="Jordan Lee"></div>
+              <div class="demo-field"><label for="sample-email">Business email</label><input id="sample-email" type="email" placeholder="jordan@example.com"></div>
+              <div class="demo-field"><label for="sample-org">Organization</label><input id="sample-org" placeholder="Company name"></div>
+              <div class="demo-field"><label for="sample-date">Target launch date</label><input id="sample-date" type="date"></div>
+              <div class="demo-field wide"><label for="sample-goals">Project goals</label><textarea id="sample-goals" placeholder="What would you like to accomplish?"></textarea></div>
+            </div><button class="demo-submit" type="submit">Submit sample response</button>
+          </form>
+          <pre class="schema-view" id="sample-schema" aria-label="Sample form schema"></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section" aria-labelledby="roles-heading">
+    <div class="landing-section-head"><div><p class="section-kicker">Interactive feature 02 · Access control</p><h2 id="roles-heading">The right access for every teammate.</h2></div><p>Keep organization records scoped to members, and give admins and managers the tools their role requires.</p></div>
+    <div class="role-panel"><div class="role-intro"><div><h3>Organization role overview</h3><p>Choose a role to highlight its typical capabilities.</p></div><div class="demo-tabs" role="group" aria-label="Choose an organization role"><button class="demo-tab role-select" type="button" data-role="admin" aria-pressed="true">Admin</button><button class="demo-tab role-select" type="button" data-role="manager" aria-pressed="false">Manager</button><button class="demo-tab role-select" type="button" data-role="member" aria-pressed="false">Member</button></div></div>
+      <div class="role-table-wrap"><table class="role-table"><thead><tr><th>Capability</th><th data-role-col="admin" class="is-selected">Admin</th><th data-role-col="manager">Manager</th><th data-role-col="member">Member</th></tr></thead><tbody>
+        <tr><td><strong>Create and publish forms</strong><small>Build and manage organization forms</small></td><td data-role-col="admin" class="is-selected"><span class="permission-yes">✓</span></td><td data-role-col="manager"><span class="permission-yes">✓</span></td><td data-role-col="member"><span class="permission-no">—</span></td></tr>
+        <tr><td><strong>Review submissions</strong><small>See responses available to the organization</small></td><td data-role-col="admin" class="is-selected"><span class="permission-yes">✓</span></td><td data-role-col="manager"><span class="permission-yes">✓</span></td><td data-role-col="member"><span class="permission-yes">✓</span></td></tr>
+        <tr><td><strong>Manage organization members</strong><small>Add teammates and change their roles</small></td><td data-role-col="admin" class="is-selected"><span class="permission-yes">✓</span></td><td data-role-col="manager"><span class="permission-no">—</span></td><td data-role-col="member"><span class="permission-no">—</span></td></tr>
+        <tr><td><strong>Update organization settings</strong><small>Manage organization details and profile</small></td><td data-role-col="admin" class="is-selected"><span class="permission-yes">✓</span></td><td data-role-col="manager"><span class="permission-yes">✓</span></td><td data-role-col="member"><span class="permission-no">—</span></td></tr>
+      </tbody></table></div><div class="role-foot">Access is checked on the server for each organization and form.</div>
+    </div>
+  </section>
+
+  <section class="landing-section" aria-labelledby="blueprints-heading">
+    <div class="landing-section-head"><div><p class="section-kicker">Interactive feature 03 · Form blueprints</p><h2 id="blueprints-heading">A practical place to start.</h2></div><p>Choose a common workflow and adapt its fields to your organization. Every blueprint below is a preview for the sandbox.</p></div>
+    <div class="blueprint-toolbar"><div class="filter-tabs" role="group" aria-label="Filter sample blueprints"><button class="landing-chip" type="button" data-filter="all" aria-pressed="true">All</button><button class="landing-chip" type="button" data-filter="operations" aria-pressed="false">Operations</button><button class="landing-chip" type="button" data-filter="people" aria-pressed="false">People</button><button class="landing-chip" type="button" data-filter="client" aria-pressed="false">Client services</button><button class="landing-chip" type="button" data-filter="compliance" aria-pressed="false">Compliance</button></div><span class="mini-label">Sample library</span></div>
+    <div class="blueprint-grid" id="blueprint-grid">
+      <article class="blueprint-card" data-category="client"><div class="blueprint-meta"><span>Client services</span><span>3 min</span></div><h3>Client onboarding</h3><p>Collect company details, key contacts, project goals, and the target timeline for a new engagement.</p><button type="button" data-use-preset="client">Try in sandbox <span>↗</span></button></article>
+      <article class="blueprint-card" data-category="people"><div class="blueprint-meta"><span>People</span><span>2 min</span></div><h3>New hire setup</h3><p>Gather department, equipment preferences, account needs, and the first day details in one place.</p><button type="button" data-use-preset="people">Try in sandbox <span>↗</span></button></article>
+      <article class="blueprint-card" data-category="compliance"><div class="blueprint-meta"><span>Compliance</span><span>4 min</span></div><h3>Vendor review</h3><p>Record supplier details, contact information, required documents, and review notes.</p><button type="button" data-use-preset="vendor">Try in sandbox <span>↗</span></button></article>
+      <article class="blueprint-card" data-category="client"><div class="blueprint-meta"><span>Client services</span><span>1 min</span></div><h3>Customer feedback</h3><p>Capture a service rating, what worked well, and one clear suggestion for next time.</p><button type="button" data-use-preset="feedback">Try in sandbox <span>↗</span></button></article>
+      <article class="blueprint-card" data-category="operations"><div class="blueprint-meta"><span>Operations</span><span>2 min</span></div><h3>Incident report</h3><p>Log what happened, when it started, affected services, and the immediate response.</p><button type="button" data-use-preset="incident">Try in sandbox <span>↗</span></button></article>
+      <article class="blueprint-card" data-category="operations"><div class="blueprint-meta"><span>Operations</span><span>1 min</span></div><h3>Workshop RSVP</h3><p>Organize attendance, session choices, accessibility needs, and any dietary requirements.</p><button type="button" data-use-preset="event">Try in sandbox <span>↗</span></button></article>
+    </div>
+  </section>
+
+  <section class="landing-section" aria-labelledby="ledger-heading">
+    <div class="landing-section-head"><div><p class="section-kicker">Interactive feature 04 · Submission records</p><h2 id="ledger-heading">Responses stay easy to find.</h2></div><p>Search and filter this sample ledger. The export button downloads only these example rows as a CSV file.</p></div>
+    <div class="ledger"><div class="ledger-head"><div><h3>Submission ledger</h3><p>Example entries · Organization view</p></div><div class="ledger-actions"><input class="ledger-search" id="ledger-search" type="search" placeholder="Search examples" aria-label="Search sample submissions"><div class="filter-tabs" role="group" aria-label="Filter sample submissions"><button class="landing-chip" type="button" data-ledger-filter="all" aria-pressed="true">All</button><button class="landing-chip" type="button" data-ledger-filter="reviewed" aria-pressed="false">Reviewed</button><button class="landing-chip" type="button" data-ledger-filter="pending" aria-pressed="false">Pending</button><button class="landing-chip" type="button" data-ledger-filter="processed" aria-pressed="false">Processed</button></div><button class="export-button" type="button" id="export-sample">Download sample CSV ↓</button></div></div>
+      <div class="ledger-table-wrap"><table class="ledger-table"><thead><tr><th>Reference</th><th>Form</th><th>Submitted by</th><th>Response summary</th><th>Status</th></tr></thead><tbody id="ledger-rows">
+        <tr data-status="reviewed"><td>SUB-1042</td><td>Client onboarding</td><td>Jordan Lee</td><td>Launch target: May · Integration: CRM</td><td><span class="status-pill reviewed">Reviewed</span></td></tr>
+        <tr data-status="processed"><td>SUB-1039</td><td>Customer feedback</td><td>Sam Rivera</td><td>5/5 rating · Clear and helpful response</td><td><span class="status-pill">Processed</span></td></tr>
+        <tr data-status="reviewed"><td>SUB-1033</td><td>Incident report</td><td>Operations team</td><td>Service delay · Workaround in place</td><td><span class="status-pill reviewed">Reviewed</span></td></tr>
+        <tr data-status="pending"><td>SUB-1028</td><td>Vendor review</td><td>Alex Morgan</td><td>Documents received · Review requested</td><td><span class="status-pill pending">Pending review</span></td></tr>
+        <tr data-status="processed"><td>SUB-1021</td><td>Workshop RSVP</td><td>Casey Nguyen</td><td>Afternoon session · Dietary note added</td><td><span class="status-pill">Processed</span></td></tr>
+      </tbody></table></div><div class="ledger-foot">Five sample records · CSV is generated in your browser</div>
+    </div>
+  </section>
+
+  <section class="landing-section" aria-labelledby="architecture-heading">
+    <div class="landing-section-head"><div><p class="section-kicker">AI architecture · Local first, schema guided</p><h2 id="architecture-heading">Use the smallest model that fits the task.</h2></div><p>Keep routine inference on the organization’s device and reserve provider APIs for the work that benefits from a frontier model.</p></div>
+    <div class="architecture-grid"><article class="architecture-card"><span class="mini-label">Two inference paths</span><h3>Fast capture, careful creation.</h3><p>System 1 classifies a short voice or text input against a known form schema and returns a confidence score for each field. System 2 handles organization and form creation with strict structured output.</p><div class="architecture-list"><div class="architecture-item"><b>On-device</b><span>Qwen 3.5 4B for everyday reasoning and analytics.</span></div><div class="architecture-item"><b>Provider APIs</b><span>Scheduled or high-complexity model tasks.</span></div><div class="architecture-item"><b>Schema checks</b><span>Review structured output before publishing.</span></div></div></article><article class="architecture-card"><span class="mini-label">Organization control</span><h3>Keep ordering close to the team.</h3><p>Organization deployments can serve guests over local Wi-Fi, with public access available through configured port forwarding. The local ordering path can continue when internet access is unavailable.</p><div class="architecture-code">Voice or text → schema classification + field confidence<br>Form or organization setup → strict structured output<br>Guest order → QR/barcode → organization network</div></article></div>
+  </section>
+
+  <section class="landing-section" aria-labelledby="faq-heading"><div class="landing-section-head"><div><p class="section-kicker">Help center · Frequently asked questions</p><h2 id="faq-heading">A few useful details.</h2></div><p>Learn how organizations, forms, and submissions fit together.</p></div>
+    <div class="faq-list">
+      <details><summary>Can someone fill out a form without an account?</summary><p>Yes. A published form can be shared with anyone who has its link. Organization membership stays private, and public respondents only see the form and submit their response.</p></details>
+      <details><summary>How are organizations kept separate?</summary><p>Organization pages and records check the signed-in account’s membership. A person in one organization does not get access to another organization’s forms, documents, or chat history.</p></details>
+      <details><summary>Can I edit a form after creating it?</summary><p>Yes. Admins and managers can edit organization forms. AI suggestions are a starting point, and you can adjust fields and validation before publishing.</p></details>
+      <details><summary>Can I export submissions?</summary><p>Submission exports are available from the organization’s submissions area. The button above exports sample data only, so you can preview the CSV format.</p></details>
+      <details><summary>How are local and cloud models used?</summary><p>Qwen 3.5 4B handles routine inference on-device. Configured provider APIs are reserved for higher-complexity or scheduled work, while schema checks keep generated forms and organization setup structured.</p></details>
+      <details><summary>Can orders work when internet access is down?</summary><p>When the organization deployment and guest device share its Wi-Fi, the local ordering flow can remain available without an internet connection. Public access can be enabled separately through configured port forwarding.</p></details>
+    </div>
+  </section>
+
+  <section class="landing-endcap"><p class="section-kicker">Make work easier to follow</p><h2>Keep requests, people, and decisions connected.</h2><p>Give each organization a clear home for its forms, response history, access groups, and trusted AI context.</p><div class="landing-actions">{% if user.is_authenticated %}<a class="landing-button" href="{% url 'organizations:dashboard' %}">Open dashboard <span aria-hidden="true">↗</span></a><a class="landing-button secondary" href="{% url 'chat:chat' %}">Open AI Hub</a>{% else %}<a class="landing-button" href="{% url 'accounts:signup' %}">Create your organization <span aria-hidden="true">↗</span></a><a class="landing-button secondary" href="{% url 'accounts:login' %}">Sign in</a>{% endif %}</div></section>
+  <footer class="landing-footer" id="site-footer" aria-label="Site footer">
+    <div class="landing-footer-main">
+      <div class="landing-footer-brand"><strong>OrgForms</strong><p>Clearer forms and workflows for local teams. Keep requests, people, and decisions connected.</p></div>
+      <nav class="landing-footer-group" aria-label="Explore OrgForms"><h2>Explore</h2><ul><li><a href="#mvp">Product overview</a></li><li><a href="#live-demo">Form sandbox</a></li><li><a href="#blueprints-heading">Form blueprints</a></li><li><a href="#architecture-heading">AI workflow</a></li></ul></nav>
+      <nav class="landing-footer-group" aria-label="Organization tools"><h2>Organization tools</h2><ul><li><a href="#roles-heading">Team access</a></li><li><a href="#ledger-heading">Submission preview</a></li><li><a href="#faq-heading">Help and FAQs</a></li></ul></nav>
+      <nav class="landing-footer-group" aria-label="Your workspace"><h2>Your workspace</h2><ul>{% if user.is_authenticated %}<li><a href="{% url 'organizations:dashboard' %}">Open dashboard</a></li><li><a href="{% url 'chat:chat' %}">Open AI Hub</a></li>{% else %}<li><a href="{% url 'accounts:signup' %}">Create an organization</a></li><li><a href="{% url 'accounts:login' %}">Sign in</a></li>{% endif %}</ul></nav>
+    </div>
+    <div class="landing-footer-bottom"><span>© 2026 OrgForms</span><span>Forms, submissions, and organization context in one place.</span></div>
+  </footer>
+</div>
+<div class="landing-toast" id="landing-toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const toast = document.getElementById('landing-toast');
+  let toastTimer;
+  const notify = (message) => { toast.textContent = message; toast.classList.add('is-visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3000); };
+  const sectionNav = document.querySelector('.landing-section-nav');
+  if (sectionNav) {
+    const sectionLinks = Array.from(sectionNav.querySelectorAll('a[href^="#"]'));
+    const indicator = sectionNav.querySelector('.landing-nav-indicator');
+    const targets = sectionLinks.map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+    let activeIndex = -1;
+    let scrollFrame = 0;
+    const moveIndicator = () => {
+      const activeLink = sectionLinks[activeIndex];
+      if (!activeLink || !indicator) return;
+      const navRect = sectionNav.getBoundingClientRect();
+      const linkRect = activeLink.getBoundingClientRect();
+      indicator.style.width = `${linkRect.width}px`;
+      indicator.style.height = `${linkRect.height}px`;
+      indicator.style.transform = `translate3d(${linkRect.left - navRect.left + sectionNav.scrollLeft - sectionNav.clientLeft}px, ${linkRect.top - navRect.top + sectionNav.scrollTop - sectionNav.clientTop}px, 0)`;
+    };
+    const setActive = (index, revealLink = false) => {
+      if (index < 0 || index >= sectionLinks.length) return;
+      const changed = activeIndex !== index;
+      activeIndex = index;
+      sectionLinks.forEach((link, linkIndex) => {
+        if (linkIndex === index) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+      if (changed && revealLink) sectionLinks[index].scrollIntoView({block:'nearest',inline:'nearest',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+      requestAnimationFrame(moveIndicator);
+    };
+    const updateFromScroll = () => {
+      scrollFrame = 0;
+      const activationLine = sectionNav.getBoundingClientRect().bottom + 58;
+      let nextIndex = 0;
+      targets.forEach((target, index) => {
+        if (target && target.getBoundingClientRect().top <= activationLine) nextIndex = index;
+      });
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 3) nextIndex = sectionLinks.length - 1;
+      setActive(nextIndex, true);
+    };
+    const scheduleScrollUpdate = () => {
+      if (!scrollFrame) scrollFrame = requestAnimationFrame(updateFromScroll);
+    };
+    sectionLinks.forEach((link, index) => link.addEventListener('click', () => setActive(index)));
+    window.addEventListener('scroll', scheduleScrollUpdate, {passive:true});
+    window.addEventListener('resize', scheduleScrollUpdate);
+    sectionNav.addEventListener('scroll', moveIndicator, {passive:true});
+    setActive(0);
+    scheduleScrollUpdate();
+  }
+  const storySections=Array.from(document.querySelectorAll('.product-landing > .landing-section'));
+  if(storySections.length){
+    let storyFrame=0;
+    const updateStoryFocus=()=>{
+      storyFrame=0;
+      const navBottom=sectionNav?.getBoundingClientRect().bottom||0;
+      const focusLine=Math.max(Math.min(navBottom+120,window.innerHeight*.84),window.innerHeight*.72);
+      let activeStory=-1;
+      storySections.forEach((section,index)=>{if(section.getBoundingClientRect().top<=focusLine)activeStory=index;});
+      if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-3)activeStory=storySections.length-1;
+      storySections.forEach((section,index)=>{
+        section.classList.toggle('is-active',index===activeStory);
+        section.classList.toggle('is-passed',activeStory>=0&&index<activeStory);
+      });
+    };
+    const scheduleStoryFocus=()=>{if(!storyFrame)storyFrame=requestAnimationFrame(updateStoryFocus);};
+    window.addEventListener('scroll',scheduleStoryFocus,{passive:true});
+    window.addEventListener('resize',scheduleStoryFocus);
+    updateStoryFocus();
+  }
+  const presets = {
+    client: {title:'Client onboarding', heading:'Client onboarding & project scope', description:'Capture company details, project goals, and a target launch date.', labels:['Contact name','Business email','Organization','Target launch date','Project goals']},
+    feedback: {title:'Customer feedback', heading:'Customer experience pulse', description:'Share a quick rating and tell us what could be better.', labels:['Your name','Email address','Service rating','Date of visit','What worked well?']},
+    incident: {title:'Incident report', heading:'Incident & issue report', description:'Record what happened and the response so far.', labels:['Reporter name','Contact email','Incident type','Date noticed','What happened?']},
+    people: {title:'New hire setup', heading:'New teammate setup', description:'Collect the essentials for a smooth first week.', labels:['Employee name','Work email','Department','Start date','Equipment or access needs']},
+    vendor: {title:'Vendor review', heading:'Vendor risk & compliance review', description:'Gather supplier information for an internal review.', labels:['Vendor name','Contact email','Company','Review date','Documents or notes']},
+    event: {title:'Workshop RSVP', heading:'Team workshop RSVP', description:'Help us plan an accessible and welcoming event.', labels:['Attendee name','Email address','Session choice','Event date','Access or dietary needs']}
+  };
+  const schema = document.getElementById('sample-schema');
+  const updateSchema = (preset) => { schema.textContent = JSON.stringify({title:preset.heading,fields:preset.labels.map((label,index)=>({key:`field_${index+1}`,label,type:index===1?'email':index===3?'date':index===4?'textarea':'text',required:index<3}))},null,2); };
+  const applyPreset = (key) => {
+    const preset = presets[key] || presets.client;
+    document.getElementById('demo-title').textContent=preset.title;
+    document.getElementById('sample-heading').textContent=preset.heading;
+    document.getElementById('sample-description').textContent=preset.description;
+    document.querySelectorAll('#sample-fields label').forEach((label,index)=>{if(preset.labels[index]) label.textContent=preset.labels[index];});
+    updateSchema(preset);
+    document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.preset===key)));
+  };
+  applyPreset('client');
+  document.querySelectorAll('[data-demo-view]').forEach(button=>button.addEventListener('click',()=>{
+    const showSchema=button.dataset.demoView==='schema';
+    document.querySelectorAll('[data-demo-view]').forEach(tab=>tab.setAttribute('aria-pressed',String(tab===button)));
+    document.getElementById('sample-form').classList.toggle('is-hidden',showSchema); schema.classList.toggle('is-visible',showSchema);
+  }));
+  document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>applyPreset(button.dataset.preset)));
+  document.querySelectorAll('[data-use-preset]').forEach(button=>button.addEventListener('click',()=>{applyPreset(button.dataset.usePreset);document.querySelector('[data-demo-view="form"]').click();document.getElementById('live-demo').scrollIntoView({behavior:'smooth'});}));
+  document.getElementById('sample-form').addEventListener('submit',event=>{event.preventDefault();event.currentTarget.reset();notify('Preview only: this sample response was not saved.');});
+  const roleButtons=Array.from(document.querySelectorAll('.role-select'));
+  const rolePanel=document.querySelector('.role-panel');
+  let roleIndex=0;
+  const selectRole=(index)=>{
+    roleIndex=index;
+    const role=roleButtons[roleIndex]?.dataset.role;
+    roleButtons.forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===roleIndex)));
+    document.querySelectorAll('[data-role-col]').forEach(cell=>cell.classList.toggle('is-selected',cell.dataset.roleCol===role));
+  };
+  roleButtons.forEach((button,index)=>button.addEventListener('click',()=>selectRole(index)));
+  if(rolePanel&&roleButtons.length&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    window.setInterval(()=>{
+      if(document.visibilityState==='visible'&&!rolePanel.matches(':hover')&&!rolePanel.matches(':focus-within'))selectRole((roleIndex+1)%roleButtons.length);
+    },4800);
+  }
+  const blueprintGrid=document.getElementById('blueprint-grid');
+  document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{
+    document.querySelectorAll('[data-filter]').forEach(tab=>tab.setAttribute('aria-pressed',String(tab===button)));
+    const cards=Array.from(document.querySelectorAll('.blueprint-card'));
+    cards.forEach(card=>{card.hidden=button.dataset.filter!=='all'&&card.dataset.category!==button.dataset.filter;card.classList.remove('is-swapping');});
+    if(blueprintGrid&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      void blueprintGrid.offsetWidth;
+      cards.filter(card=>!card.hidden).forEach((card,index)=>{card.style.setProperty('--swap-index',index);card.classList.add('is-swapping');});
+    }
+  }));
+  let ledgerStatus='all';
+  const filterLedger=()=>{const query=document.getElementById('ledger-search').value.trim().toLowerCase();document.querySelectorAll('#ledger-rows tr').forEach(row=>{row.hidden=!((ledgerStatus==='all'||row.dataset.status===ledgerStatus)&&row.innerText.toLowerCase().includes(query));});};
+  document.querySelectorAll('[data-ledger-filter]').forEach(button=>button.addEventListener('click',()=>{ledgerStatus=button.dataset.ledgerFilter;document.querySelectorAll('[data-ledger-filter]').forEach(tab=>tab.setAttribute('aria-pressed',String(tab===button)));filterLedger();}));
+  document.getElementById('ledger-search').addEventListener('input',filterLedger);
+  document.getElementById('export-sample').addEventListener('click',()=>{
+    const rows=[['Reference','Form','Submitted by','Response summary','Status'],...Array.from(document.querySelectorAll('#ledger-rows tr')).map(row=>Array.from(row.cells).map(cell=>cell.innerText.trim()))];
+    const csv=rows.map(row=>row.map(value=>'"'+value.replaceAll('"','""')+'"').join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='orgforms-sample-submissions.csv';link.click();URL.revokeObjectURL(url);notify('Sample CSV downloaded.');
+  });
+  const motion = document.querySelector('[data-workflow-motion]');
+  if (motion) {
+    const steps = Array.from(motion.querySelectorAll('[data-workflow-step]'));
+    const copy = [
+      'Capture a request once and keep the original submission available for review.',
+      'Map details into clear fields, then validate structured output before it is used.',
+      'Reviewers work from one ledger with status, filters, and export tools.',
+      'The next request can draw on trusted organization sources and opted-in profile details.',
+    ];
+    const captions = motion.querySelector('[data-workflow-caption]');
+    const progress = motion.querySelector('[data-workflow-progress]');
+    const play = motion.querySelector('[data-workflow-play]');
+    let current = 0;
+    let timer = null;
+    const selectStep = (index) => {
+      current = index;
+      steps.forEach((step, i) => step.setAttribute('aria-current', i === current ? 'step' : 'false'));
+      captions.textContent = copy[current];
+      progress.style.transform = `translateX(${current * 100}%)`;
+    };
+    const interval = 3600;
+    const start = () => { clearInterval(timer); timer = setInterval(() => selectStep((current + 1) % steps.length), interval); play.textContent = 'Pause walkthrough'; play.setAttribute('aria-pressed', 'true'); };
+    const stop = () => { clearInterval(timer); timer = null; play.textContent = 'Play walkthrough'; play.setAttribute('aria-pressed', 'false'); };
+    steps.forEach((step) => step.addEventListener('click', () => { selectStep(Number(step.dataset.workflowStep)); if (timer) start(); }));
+    play.addEventListener('click', () => timer ? stop() : start());
+    if (steps.length && play && captions && progress) start();
+  }
+  if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const revealObserver = new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-in-view'); revealObserver.unobserve(entry.target); }
+    }), {threshold: 0.08});
+    document.querySelectorAll('.product-landing > .landing-section, .product-landing > .landing-endcap').forEach((section) => { section.classList.add('landing-reveal'); revealObserver.observe(section); });
+  }
+})();
+</script>
+{% endblock %}
