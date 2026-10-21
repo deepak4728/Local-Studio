@@ -83,10 +83,12 @@ These are local measurements supplied by the project owner. They are useful for 
 | --- | --- | --- | ---: | ---: | ---: | ---: |
 | `gemma3:1b` | Off | No | 158 MB | 52.87 tok/s | ~870 MB | 815 MB |
 | `llama3.2:1b` | Off | No | 230 MB | 42.58 tok/s | ~1.5 GB | 1.3 GB |
-| `qwen3.5:0.8b` | Off | Yes | 600 MB | 41.92 tok/s | Not recorded | 1.32 GB |
+| `qwen3.5:0.8b` | Off | Yes | 600 MB | 41.92 tok/s | ~1.32 GB | 1.32 GB |
 | `qwen3.5:2b` | Off | Yes | 860 MB | 25.88 tok/s | ~2.7 GB | 2.7 GB |
 | `gemma4:e2b` | Off | Yes | 3.20 GB | 31.43 tok/s | ~7.2 GB | 7.2 GB |
 | `qwen3.5:4b` | Off | Yes | 4.17 GB | 17.61 tok/s | ~3.4 GB | 3.4 GB |
+
+Ollama lists `qwen3.5:0.8b` at 1.2–1.3 GB; the installed model manifest totals 1.322 GB, rounded to 1.32 GB above. The 600 MB figure is the recorded active memory during inference. [Ollama model tags](https://ollama.com/library/qwen3.5/tags)
 
 Ollama publishes thinking capability for the Qwen 3.5 and Gemma 4 families; Gemma 3 and Llama 3.2 do not list that capability on their model pages ([Qwen 3.5](https://ollama.com/library/qwen3.5), [Gemma 4](https://ollama.com/library/gemma4), [Gemma 3](https://ollama.com/library/gemma3), [Llama 3.2](https://ollama.com/library/llama3.2)). The installed local model metadata is authoritative for the app toggle.
 
