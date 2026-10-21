@@ -83,7 +83,7 @@ These are local measurements supplied by the project owner. They are useful for 
 | --- | --- | --- | ---: | ---: | ---: | ---: |
 | `gemma3:1b` | Off | No | 158 MB | 52.87 tok/s | ~870 MB | 815 MB |
 | `llama3.2:1b` | Off | No | 230 MB | 42.58 tok/s | ~1.5 GB | 1.3 GB |
-| `qwen3.5:0.8b` | Not recorded | Yes | 600 MB | 41.92 tok/s | Not recorded | Not recorded |
+| `qwen3.5:0.8b` | Off | Yes | 600 MB | 41.92 tok/s | Not recorded | 1.32 GB |
 | `qwen3.5:2b` | Off | Yes | 860 MB | 25.88 tok/s | ~2.7 GB | 2.7 GB |
 | `gemma4:e2b` | Off | Yes | 3.20 GB | 31.43 tok/s | ~7.2 GB | 7.2 GB |
 | `qwen3.5:4b` | Off | Yes | 4.17 GB | 17.61 tok/s | ~3.4 GB | 3.4 GB |
@@ -96,7 +96,7 @@ Quick selection guide from these measurements:
 | --- | --- | --- |
 | Fast replies and lowest observed memory | `gemma3:1b` | Fastest measured at 52.87 tok/s and 158 MB active memory. |
 | Lightweight general chat | `llama3.2:1b` | 42.58 tok/s at 230 MB active memory. |
-| Think-capable Qwen with a smaller footprint | `qwen3.5:0.8b` | 41.92 tok/s at 600 MB active memory; Think usage was not recorded. |
+| Compact Qwen option | `qwen3.5:0.8b` | 41.92 tok/s at 600 MB active memory, with Think off during the run. |
 | Try Think mode without the largest measured footprint | `qwen3.5:2b` | Think capable, 25.88 tok/s, and 860 MB active memory. |
 | More capable local reasoning | `gemma4:e2b` | Think capable and measured at 31.43 tok/s; it used 3.20 GB active memory. |
 | Larger Qwen option | `qwen3.5:4b` | Think capable, with the slowest measured speed and highest active memory in this set. |
